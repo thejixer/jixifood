@@ -13,14 +13,14 @@ and then run the necessary deployments one by one
 cd postgres
 ./deploy.sh
 cd ..
-``
+```
 ```
 cd pgadmin
 ./deploy.sh
 cd ..
-``
+```
 ```
 cd redis
 ./deploy.sh
 cd ..
-``
+```
