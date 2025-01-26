@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-sql
+  namespace: jixifood
+data:
+  init.sql: |
+    CREATE DATABASE jixifood_auth;
