@@ -41,5 +41,15 @@ func NewPostgresStore(cfg *config.AuthServiceConfig) (*PostgresStore, error) {
 
 func (s *PostgresStore) Init() error {
 
+	s.CreateTypes()
+
+	if err := s.createAuthTables(); err != nil {
+		return err
+	}
+
+	if err := s.SeedDB(); err != nil {
+		return err
+	}
+
 	return nil
 }
