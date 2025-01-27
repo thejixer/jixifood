@@ -1,6 +1,7 @@
 .env
 infra/k8s/pgadmin/pgadmin-secret.yaml
 infra/k8s/postgres/postgres-secret.yaml
+generated
 
 todo
 info.text
