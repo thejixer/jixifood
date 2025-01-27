@@ -9,6 +9,7 @@ import (
 	pb "github.com/thejixer/jixifood/generated/auth"
 	"github.com/thejixer/jixifood/services/auth/internal/config"
 	"github.com/thejixer/jixifood/services/auth/internal/handlers"
+	"github.com/thejixer/jixifood/services/auth/internal/redis"
 	"github.com/thejixer/jixifood/services/auth/internal/repository"
 	"google.golang.org/grpc"
 )
@@ -34,9 +35,14 @@ func main() {
 		log.Fatal("could not connect to the database: ", err)
 	}
 
+	redisStore, err := redis.NewRedisStore(cfg)
+	if err != nil {
+		log.Fatalf("can not connect to redis, %s", err)
+	}
+
 	s := grpc.NewServer()
 
-	service := handlers.NewAuthServiceServer(dbStore)
+	service := handlers.NewAuthServiceServer(dbStore, redisStore)
 	pb.RegisterAuthServiceServer(s, service)
 
 	fmt.Printf("serving on port : %v \n", cfg.ListenAddr)

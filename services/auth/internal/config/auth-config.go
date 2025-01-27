@@ -8,6 +8,7 @@ type AuthServiceConfig struct {
 	DB_USER     string
 	DB_PASSWORD string
 	DB_HOST     string
+	RedisURI    string
 }
 
 func NewAuthServiceConfig() *AuthServiceConfig {
@@ -19,11 +20,14 @@ func NewAuthServiceConfig() *AuthServiceConfig {
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbHost := os.Getenv("DB_HOST")
 
+	RedisURI := os.Getenv("REDIS_URI")
+
 	return &AuthServiceConfig{
 		ListenAddr:  listenAddr,
 		DB_NAME:     DB_NAME,
 		DB_USER:     dbUser,
 		DB_PASSWORD: dbPassword,
 		DB_HOST:     dbHost,
+		RedisURI:    RedisURI,
 	}
 }
