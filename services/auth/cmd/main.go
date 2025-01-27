@@ -9,6 +9,7 @@ import (
 	pb "github.com/thejixer/jixifood/generated/auth"
 	"github.com/thejixer/jixifood/services/auth/internal/config"
 	"github.com/thejixer/jixifood/services/auth/internal/handlers"
+	"github.com/thejixer/jixifood/services/auth/internal/repository"
 	"google.golang.org/grpc"
 )
 
@@ -23,8 +24,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("can't create a listener: %s", err)
 	}
+
+	dbStore, err := repository.NewPostgresStore(cfg)
+	if err != nil {
+		log.Fatal("could not connect to the database: ", err)
+	}
+
+	if err := dbStore.Init(); err != nil {
+		log.Fatal("could not connect to the database: ", err)
+	}
+
 	s := grpc.NewServer()
-	service := handlers.NewAuthServiceServer()
+
+	service := handlers.NewAuthServiceServer(dbStore)
 	pb.RegisterAuthServiceServer(s, service)
 
 	fmt.Printf("serving on port : %v \n", cfg.ListenAddr)
