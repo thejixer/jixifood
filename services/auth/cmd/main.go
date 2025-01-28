@@ -9,6 +9,7 @@ import (
 	pb "github.com/thejixer/jixifood/generated/auth"
 	"github.com/thejixer/jixifood/services/auth/internal/config"
 	"github.com/thejixer/jixifood/services/auth/internal/handlers"
+	"github.com/thejixer/jixifood/services/auth/internal/logic"
 	"github.com/thejixer/jixifood/services/auth/internal/redis"
 	"github.com/thejixer/jixifood/services/auth/internal/repository"
 	"google.golang.org/grpc"
@@ -40,10 +41,12 @@ func main() {
 		log.Fatalf("can not connect to redis, %s", err)
 	}
 
+	AuthLogic := logic.NewAuthLogic(dbStore, redisStore)
+
 	s := grpc.NewServer()
 
-	service := handlers.NewAuthServiceServer(dbStore, redisStore)
-	pb.RegisterAuthServiceServer(s, service)
+	authHandler := handlers.NewAuthHandler(AuthLogic)
+	pb.RegisterAuthServiceServer(s, authHandler)
 
 	fmt.Printf("serving on port : %v \n", cfg.ListenAddr)
 	err = s.Serve(lis)

@@ -21,9 +21,10 @@ func NewAPIServer(listenAddr string, handlerService *handlers.HandlerService) *A
 
 func (s *APIServer) Run() {
 	e := echo.New()
-	router := router.NewRouter(e, s.handlerService)
+	r := router.NewRouter(e, s.handlerService)
 
-	router.ApplyRoutes(e)
+	r.ApplyMiddlewares(e)
+	r.ApplyRoutes(e)
 
 	e.Logger.Fatal(e.Start(s.listenAddr))
 }

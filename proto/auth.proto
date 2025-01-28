@@ -3,3 +3,15 @@ syntax = "proto3";
 option go_package = "generated/auth";
 
 package auth;
+
+service AuthService {
+  rpc RequestOtp (RequestOtpRequest) returns (MessageResponse);
+}
+
+message RequestOtpRequest {
+  string phone_number = 1;
+}
+
+message MessageResponse {
+  string message = 1;
+}

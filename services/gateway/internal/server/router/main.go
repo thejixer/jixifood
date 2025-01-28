@@ -19,4 +19,5 @@ func NewRouter(e *echo.Echo, h *handlers.HandlerService) *Router {
 
 func (r *Router) ApplyRoutes(e *echo.Echo) {
 	e.GET("/", r.h.HandleHelloWorld)
+	r.ApplyAuthRoutes(e)
 }

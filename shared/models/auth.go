@@ -7,3 +7,8 @@ type Role struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
+
+// ######### DTOS #########
+type RequestOTPDto struct {
+	PhoneNumber string `json:"phone_number" validate:"required"`
+}
