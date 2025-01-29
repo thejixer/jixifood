@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -16,16 +15,13 @@ func (h *HandlerService) HandleRequestOTP(c echo.Context) error {
 	body := models.RequestOTPDto{}
 
 	if err := c.Bind(&body); err != nil {
-		fmt.Println("xxx")
 		return echo.NewHTTPError(http.StatusBadRequest, "bad input")
 	}
 
 	if err := c.Validate(body); err != nil {
-		fmt.Println("yyy")
-		fmt.Println(err)
 		return WriteReponse(c, http.StatusBadRequest, "bad input")
 	}
-	fmt.Println("lol")
+
 	d := &authPB.RequestOtpRequest{
 		PhoneNumber: body.PhoneNumber,
 	}
@@ -48,4 +44,42 @@ func (h *HandlerService) HandleRequestOTP(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, resp)
+}
+
+func (h *HandlerService) HandleVerifyOTP(c echo.Context) error {
+	body := models.VerifyOTPDto{}
+
+	if err := c.Bind(&body); err != nil {
+		return WriteReponse(c, http.StatusBadRequest, "bad input")
+	}
+
+	if err := c.Validate(body); err != nil {
+		return WriteReponse(c, http.StatusBadRequest, "bad input")
+	}
+
+	d := &authPB.VerifyOtpRequest{
+		PhoneNumber: body.PhoneNumber,
+		Otp:         body.OTP,
+	}
+	res, err := h.gc.AuthClient.VerifyOtp(context.Background(), d)
+	if err != nil {
+		st, ok := status.FromError(err)
+		if !ok {
+			return WriteReponse(c, http.StatusInternalServerError, "Internal server error")
+		}
+		switch st.Code() {
+		case codes.InvalidArgument:
+			return WriteReponse(c, http.StatusBadRequest, "provided values did not meet the requirements")
+		case codes.Internal:
+			return WriteReponse(c, http.StatusInternalServerError, "Internal server error")
+		case codes.Unauthenticated:
+			return WriteReponse(c, http.StatusUnauthorized, "code doesn't match")
+		default:
+			// Handle other error codes
+			return WriteReponse(c, http.StatusInternalServerError, "An unexpected error occurred")
+		}
+	}
+
+	return c.JSON(http.StatusOK, res)
+
 }

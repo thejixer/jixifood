@@ -25,3 +25,12 @@ func (rc *RedisStore) GetOTP(phoneNumber string) (string, error) {
 
 	return val, nil
 }
+
+func (rc *RedisStore) DelOTP(phoneNumber string) error {
+	key := fmt.Sprintf("jf-otp-%v", phoneNumber)
+	_, err := rc.rdb.Del(rc.ctx, key).Result()
+	if err != nil {
+		return err
+	}
+	return nil
+}

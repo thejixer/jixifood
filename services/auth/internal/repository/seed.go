@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/thejixer/jixifood/services/auth/internal/utils"
 	"github.com/thejixer/jixifood/shared/models"
 )
 
@@ -44,7 +45,7 @@ func (s *PostgresStore) SeedDB() error {
 		return fmt.Errorf("failed to seed roles: %w", err)
 	}
 
-	roleIDs := make(map[string]int64)
+	roleIDs := make(map[string]uint64)
 	rows, err := tx.Query(`SELECT id, name FROM roles WHERE name IN ('manager', 'operator', 'delivery', 'customer')`)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve role IDs: %w", err)
@@ -53,19 +54,24 @@ func (s *PostgresStore) SeedDB() error {
 
 	for rows.Next() {
 		var role models.Role
-		if err := rows.Scan(&role.Id, &role.Name); err != nil {
+		if err := rows.Scan(&role.ID, &role.Name); err != nil {
 			return fmt.Errorf("failed to scan role: %w", err)
 		}
-		roleIDs[role.Name] = role.Id
+		roleIDs[role.Name] = role.ID
 	}
 
 	// make the main manager
 	phoneNumber := os.Getenv("MAIN_MANAGER_PHONENUMBER")
+	normalizedPhone, err := utils.ValidatePhoneNumber(phoneNumber)
+	if err != nil {
+		return fmt.Errorf("bad phone number, please check .env file")
+	}
+
 	lastInsertId := 0
 	insertErr := tx.QueryRow(
-		`	INSERT INTO USERS (phone_number, status, role_id, createdAt)
-			VALUES ($1, $2, $3, $4) RETURNING id`,
-		phoneNumber,
+		`	INSERT INTO USERS (name, phone_number, status, role_id, createdAt)
+			VALUES ('main manager', $1, $2, $3, $4) RETURNING id`,
+		normalizedPhone,
 		"complete",
 		roleIDs["manager"],
 		time.Now().UTC(),

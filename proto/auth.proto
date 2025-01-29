@@ -6,12 +6,22 @@ package auth;
 
 service AuthService {
   rpc RequestOtp (RequestOtpRequest) returns (MessageResponse);
+  rpc VerifyOtp(VerifyOtpRequest) returns (Token);
 }
 
 message RequestOtpRequest {
   string phone_number = 1;
 }
 
+message VerifyOtpRequest {
+  string phone_number = 1; // User phone_number
+  string otp = 2;   // OTP entered by the user
+}
+
 message MessageResponse {
   string message = 1;
+}
+
+message Token {
+  string token = 1;
 }

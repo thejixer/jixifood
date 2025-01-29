@@ -1,6 +1,13 @@
 package repository
 
-import "database/sql"
+import (
+	"context"
+	"database/sql"
+	"time"
+
+	apperrors "github.com/thejixer/jixifood/shared/errors"
+	"github.com/thejixer/jixifood/shared/models"
+)
 
 func (s *PostgresStore) CreateTypes() {
 	s.db.Query(`CREATE TYPE valid_user_status AS ENUM ('incomplete', 'complete');`)
@@ -60,4 +67,77 @@ func NewAuthRepo(db *sql.DB) *AuthRepo {
 	return &AuthRepo{
 		db: db,
 	}
+}
+
+func (r *AuthRepo) CreateUser(ctx context.Context, phoneNumber string, roleID uint64) (*models.UserEntity, error) {
+
+	NewUser := &models.UserEntity{
+		Name:        "",
+		PhoneNumber: phoneNumber,
+		Status:      "incomplete",
+		RoleID:      roleID,
+		CreatedAt:   time.Now().UTC(),
+	}
+
+	// the roleId 0 is intended to be a customer
+	if NewUser.RoleID == 0 {
+		err := r.db.QueryRowContext(ctx, `SELECT id FROM ROLES WHERE NAME = 'customer'`).Scan(&NewUser.RoleID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	query := `
+		INSERT INTO users (name, phone_number, status, role_id, createdAt)
+		VALUES ($1, $2, $3, $4, $5) RETURNING id`
+
+	lastInsertId := 0
+
+	insertErr := r.db.QueryRowContext(
+		ctx,
+		query,
+		NewUser.Name,
+		NewUser.PhoneNumber,
+		NewUser.Status,
+		NewUser.RoleID,
+		NewUser.CreatedAt,
+	).Scan(&lastInsertId)
+
+	if insertErr != nil {
+		return nil, insertErr
+	}
+
+	NewUser.ID = uint64(lastInsertId)
+
+	return NewUser, nil
+}
+
+func (r *AuthRepo) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.UserEntity, error) {
+
+	rows, err := r.db.Query("SELECT * FROM USERS WHERE phone_number = $1", phoneNumber)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		return ScanIntoUserEntity(rows)
+	}
+
+	return nil, apperrors.ErrNotFound
+}
+
+func ScanIntoUserEntity(rows *sql.Rows) (*models.UserEntity, error) {
+	u := new(models.UserEntity)
+	if err := rows.Scan(
+		&u.ID,
+		&u.Name,
+		&u.PhoneNumber,
+		&u.Status,
+		&u.RoleID,
+		&u.CreatedAt,
+	); err != nil {
+		return nil, err
+	}
+	return u, nil
 }
