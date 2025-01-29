@@ -127,6 +127,35 @@ func (r *AuthRepo) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 	return nil, apperrors.ErrNotFound
 }
 
+func (r *AuthRepo) GetUserByID(ctx context.Context, id uint64) (*models.UserEntity, error) {
+
+	rows, err := r.db.Query("SELECT * FROM USERS WHERE id = $1", id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		return ScanIntoUserEntity(rows)
+	}
+
+	return nil, apperrors.ErrNotFound
+}
+
+func (r *AuthRepo) GetRoleByID(ctx context.Context, id uint64) (*models.Role, error) {
+	rows, err := r.db.Query("SELECT * FROM roles WHERE id = $1", id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		return ScanIntoRole(rows)
+	}
+
+	return nil, apperrors.ErrNotFound
+}
+
 func ScanIntoUserEntity(rows *sql.Rows) (*models.UserEntity, error) {
 	u := new(models.UserEntity)
 	if err := rows.Scan(
@@ -140,4 +169,16 @@ func ScanIntoUserEntity(rows *sql.Rows) (*models.UserEntity, error) {
 		return nil, err
 	}
 	return u, nil
+}
+
+func ScanIntoRole(rows *sql.Rows) (*models.Role, error) {
+	role := new(models.Role)
+	if err := rows.Scan(
+		&role.ID,
+		&role.Name,
+		&role.Description,
+	); err != nil {
+		return nil, err
+	}
+	return role, nil
 }

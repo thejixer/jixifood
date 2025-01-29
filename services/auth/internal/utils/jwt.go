@@ -20,3 +20,10 @@ func SignToken(id uint64) (string, error) {
 	return token.SignedString(mySigningKey)
 
 }
+
+func VerifyToken(tokenString string) (*jwt.Token, error) {
+	secret := os.Getenv("JWT_SECRET")
+	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil
+	})
+}

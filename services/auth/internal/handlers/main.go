@@ -18,6 +18,8 @@ type AuthLogicInterface interface {
 	VerifyOTP(phoneNumber, otp string) (bool, error)
 	GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.UserEntity, error)
 	CreateUser(ctx context.Context, phoneNumber string, roleID uint64) (*models.UserEntity, error)
+	GetRequester(ctx context.Context) (*models.UserEntity, error)
+	ConvertToPBUser(ctx context.Context, user *models.UserEntity) *pb.User
 }
 
 type AuthHandler struct {
@@ -106,5 +108,27 @@ func (s *AuthHandler) VerifyOtp(ctx context.Context, req *pb.VerifyOtpRequest) (
 	return &pb.Token{
 		Token: tokenString,
 	}, nil
+
+}
+
+func (s *AuthHandler) Me(ctx context.Context, req *pb.Empty) (*pb.User, error) {
+
+	requester, err := s.AuthLogic.GetRequester(ctx)
+
+	if err != nil {
+		if errors.Is(err, apperrors.ErrMissingMetaData) ||
+			errors.Is(err, apperrors.ErrMissingToken) ||
+			errors.Is(err, apperrors.ErrUnauthorized) {
+			return nil, status.Error(codes.Unauthenticated, apperrors.ErrUnauthorized.Error())
+		}
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+	}
+
+	user := s.AuthLogic.ConvertToPBUser(ctx, requester)
+	if user == nil {
+		return nil, status.Error(codes.Internal, apperrors.ErrInternal.Error())
+	}
+
+	return user, nil
 
 }

@@ -3,12 +3,17 @@ package logic
 import (
 	"context"
 	"errors"
+	"strconv"
 
+	"github.com/golang-jwt/jwt"
+	pb "github.com/thejixer/jixifood/generated/auth"
 	"github.com/thejixer/jixifood/services/auth/internal/redis"
 	"github.com/thejixer/jixifood/services/auth/internal/repository"
 	"github.com/thejixer/jixifood/services/auth/internal/utils"
 	apperrors "github.com/thejixer/jixifood/shared/errors"
 	"github.com/thejixer/jixifood/shared/models"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type AuthLogic struct {
@@ -74,4 +79,76 @@ func (l *AuthLogic) CreateUser(ctx context.Context, phoneNumber string, roleID u
 	}
 	return user, nil
 
+}
+
+func (l *AuthLogic) GetRequester(ctx context.Context) (*models.UserEntity, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, apperrors.ErrMissingMetaData
+	}
+	tokens := md["auth"]
+	if len(tokens) == 0 {
+		return nil, apperrors.ErrMissingToken
+	}
+	tokenString := tokens[0]
+	token, err := utils.VerifyToken(tokenString)
+
+	if err != nil || !token.Valid {
+		return nil, apperrors.ErrUnauthorized
+	}
+
+	claims := token.Claims.(jwt.MapClaims)
+
+	if claims["id"] == nil {
+		return nil, apperrors.ErrUnauthorized
+	}
+	i := claims["id"].(string)
+	intId, err := strconv.Atoi(i)
+	if err != nil {
+		return nil, apperrors.ErrInternal
+	}
+	userId := uint64(intId)
+
+	userFromCache := l.RedisStore.GetUser(userId)
+	if userFromCache != nil {
+		return userFromCache, nil
+	}
+
+	user, err := l.dbStore.AuthRepo.GetUserByID(ctx, userId)
+	if err != nil {
+		return nil, apperrors.ErrInternal
+	}
+
+	go l.RedisStore.CacheUser(user)
+
+	return user, nil
+
+}
+
+func (l *AuthLogic) ConvertToPBUser(ctx context.Context, user *models.UserEntity) *pb.User {
+
+	role, err := l.dbStore.AuthRepo.GetRoleByID(ctx, user.RoleID)
+	if err != nil {
+		return nil
+	}
+
+	userStatus := func(status string) pb.UserStatus {
+		switch status {
+		case "complete":
+			return pb.UserStatus_complete
+		case "incomplete":
+			return pb.UserStatus_incomplete
+		default:
+			return pb.UserStatus_incomplete
+		}
+	}(user.Status)
+
+	return &pb.User{
+		Id:          user.ID,
+		Name:        user.Name,
+		PhoneNumber: user.PhoneNumber,
+		Status:      userStatus,
+		Role:        role.Name,
+		CreatedAt:   timestamppb.New(user.CreatedAt),
+	}
 }

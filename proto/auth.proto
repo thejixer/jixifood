@@ -4,18 +4,23 @@ option go_package = "generated/auth";
 
 package auth;
 
+import "google/protobuf/timestamp.proto";
+
 service AuthService {
   rpc RequestOtp (RequestOtpRequest) returns (MessageResponse);
   rpc VerifyOtp(VerifyOtpRequest) returns (Token);
+  rpc Me(Empty) returns (User);
 }
+
+message Empty {}
 
 message RequestOtpRequest {
   string phone_number = 1;
 }
 
 message VerifyOtpRequest {
-  string phone_number = 1; // User phone_number
-  string otp = 2;   // OTP entered by the user
+  string phone_number = 1; 
+  string otp = 2;
 }
 
 message MessageResponse {
@@ -24,4 +29,18 @@ message MessageResponse {
 
 message Token {
   string token = 1;
+}
+
+message User {
+  uint64 id = 1;
+  string name = 2;
+  string phone_number = 3;
+  UserStatus status = 4;
+  string role = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+enum UserStatus {
+  incomplete = 0;
+  complete = 1;
 }

@@ -8,6 +8,8 @@ import (
 type AuthRepository interface {
 	CreateUser(ctx context.Context, phoneNumber string, roleId uint64) (*UserEntity, error)
 	GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*UserEntity, error)
+	GetUserByID(ctx context.Context, id uint64) (*UserEntity, error)
+	GetRoleByID(ctx context.Context, id uint64) (*Role, error)
 }
 
 type UserEntity struct {
@@ -29,9 +31,9 @@ type User struct {
 }
 
 type Role struct {
-	ID          uint64 `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	ID          uint64
+	Name        string
+	Description string
 }
 
 // ######### DTOS #########
@@ -42,4 +44,13 @@ type RequestOTPDto struct {
 type VerifyOTPDto struct {
 	PhoneNumber string `json:"phone_number" validate:"required"`
 	OTP         string `json:"otp" validate:"required"`
+}
+
+type UserDto struct {
+	ID          uint64    `json:"id"`
+	Name        string    `json:"name"`
+	PhoneNumber string    `json:"phone_number"`
+	Status      string    `json:"status"`
+	Role        string    `json:"role"`
+	CreatedAt   time.Time `json:"created_at"`
 }

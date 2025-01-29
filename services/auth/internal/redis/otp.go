@@ -7,7 +7,7 @@ import (
 
 func (rc *RedisStore) SetOTP(phoneNumber, otp string) error {
 	key := fmt.Sprintf("jf-otp-%v", phoneNumber)
-	err := rc.rdb.Set(rc.ctx, key, otp, time.Second*60*3).Err()
+	err := rc.rdb.Set(rc.ctx, key, otp, time.Minute*3).Err()
 
 	if err != nil {
 		return err
