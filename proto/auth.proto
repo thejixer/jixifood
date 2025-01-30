@@ -10,10 +10,16 @@ service AuthService {
   rpc RequestOtp (RequestOtpRequest) returns (MessageResponse);
   rpc VerifyOtp(VerifyOtpRequest) returns (Token);
   rpc Me(Empty) returns (User);
+  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
 }
-
+// common
 message Empty {}
 
+enum UserStatus {
+  incomplete = 0;
+  complete = 1;
+}
+// requests
 message RequestOtpRequest {
   string phone_number = 1;
 }
@@ -23,9 +29,11 @@ message VerifyOtpRequest {
   string otp = 2;
 }
 
-message MessageResponse {
-  string message = 1;
+message CheckPermissionRequest {
+  string persmissionName = 1;
 }
+
+// responses
 
 message Token {
   string token = 1;
@@ -40,7 +48,11 @@ message User {
   google.protobuf.Timestamp created_at = 6;
 }
 
-enum UserStatus {
-  incomplete = 0;
-  complete = 1;
+message MessageResponse {
+  string message = 1;
+}
+
+message CheckPermissionResponse {
+  bool hasPermission = 1;
+  User requester = 2;
 }

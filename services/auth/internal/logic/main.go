@@ -152,3 +152,13 @@ func (l *AuthLogic) ConvertToPBUser(ctx context.Context, user *models.UserEntity
 		CreatedAt:   timestamppb.New(user.CreatedAt),
 	}
 }
+
+func (l *AuthLogic) CheckPermission(ctx context.Context, roleID uint64, permissionName string) bool {
+
+	ok, err := l.dbStore.AuthRepo.CheckPermission(ctx, roleID, permissionName)
+	if err != nil || !ok {
+		return false
+	}
+
+	return true
+}

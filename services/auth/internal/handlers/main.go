@@ -20,6 +20,7 @@ type AuthLogicInterface interface {
 	CreateUser(ctx context.Context, phoneNumber string, roleID uint64) (*models.UserEntity, error)
 	GetRequester(ctx context.Context) (*models.UserEntity, error)
 	ConvertToPBUser(ctx context.Context, user *models.UserEntity) *pb.User
+	CheckPermission(ctx context.Context, roleID uint64, permissionName string) bool
 }
 
 type AuthHandler struct {
@@ -131,4 +132,32 @@ func (s *AuthHandler) Me(ctx context.Context, req *pb.Empty) (*pb.User, error) {
 
 	return user, nil
 
+}
+
+func (s *AuthHandler) CheckPermission(ctx context.Context, req *pb.CheckPermissionRequest) (*pb.CheckPermissionResponse, error) {
+	requester, err := s.AuthLogic.GetRequester(ctx)
+
+	if err != nil {
+		if errors.Is(err, apperrors.ErrMissingMetaData) ||
+			errors.Is(err, apperrors.ErrMissingToken) ||
+			errors.Is(err, apperrors.ErrUnauthorized) {
+			return nil, status.Error(codes.Unauthenticated, apperrors.ErrUnauthorized.Error())
+		}
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+	}
+
+	ok := s.AuthLogic.CheckPermission(ctx, requester.RoleID, req.PersmissionName)
+	if !ok {
+		return nil, status.Error(codes.PermissionDenied, apperrors.ErrForbidden.Error())
+	}
+
+	user := s.AuthLogic.ConvertToPBUser(ctx, requester)
+	if user == nil {
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+	}
+
+	return &pb.CheckPermissionResponse{
+		HasPermission: true,
+		Requester:     user,
+	}, nil
 }

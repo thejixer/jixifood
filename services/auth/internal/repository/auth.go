@@ -114,7 +114,7 @@ func (r *AuthRepo) CreateUser(ctx context.Context, phoneNumber string, roleID ui
 
 func (r *AuthRepo) GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.UserEntity, error) {
 
-	rows, err := r.db.Query("SELECT * FROM USERS WHERE phone_number = $1", phoneNumber)
+	rows, err := r.db.QueryContext(ctx, "SELECT * FROM USERS WHERE phone_number = $1", phoneNumber)
 
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func (r *AuthRepo) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 
 func (r *AuthRepo) GetUserByID(ctx context.Context, id uint64) (*models.UserEntity, error) {
 
-	rows, err := r.db.Query("SELECT * FROM USERS WHERE id = $1", id)
+	rows, err := r.db.QueryContext(ctx, "SELECT * FROM USERS WHERE id = $1", id)
 
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func (r *AuthRepo) GetUserByID(ctx context.Context, id uint64) (*models.UserEnti
 }
 
 func (r *AuthRepo) GetRoleByID(ctx context.Context, id uint64) (*models.Role, error) {
-	rows, err := r.db.Query("SELECT * FROM roles WHERE id = $1", id)
+	rows, err := r.db.QueryContext(ctx, "SELECT * FROM roles WHERE id = $1", id)
 
 	if err != nil {
 		return nil, err
@@ -154,6 +154,24 @@ func (r *AuthRepo) GetRoleByID(ctx context.Context, id uint64) (*models.Role, er
 	}
 
 	return nil, apperrors.ErrNotFound
+}
+
+func (r *AuthRepo) CheckPermission(ctx context.Context, roleID uint64, permissionName string) (bool, error) {
+	query := `
+	SELECT EXISTS (
+		SELECT 1
+		FROM role_permissions rp
+		JOIN permissions p
+		ON rp.permission_id = p.id
+		WHERE rp.role_id = $1 AND p.name = $2
+	);
+`
+	var exists bool
+	err := r.db.QueryRowContext(ctx, query, roleID, permissionName).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }
 
 func ScanIntoUserEntity(rows *sql.Rows) (*models.UserEntity, error) {

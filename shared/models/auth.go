@@ -10,6 +10,7 @@ type AuthRepository interface {
 	GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*UserEntity, error)
 	GetUserByID(ctx context.Context, id uint64) (*UserEntity, error)
 	GetRoleByID(ctx context.Context, id uint64) (*Role, error)
+	CheckPermission(ctx context.Context, roleID uint64, permissionName string) (bool, error)
 }
 
 type UserEntity struct {
