@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/thejixer/jixifood/services/auth/internal/utils"
+	"github.com/thejixer/jixifood/shared/constants"
 	"github.com/thejixer/jixifood/shared/models"
 )
 
@@ -36,17 +37,28 @@ func (s *PostgresStore) SeedDB() error {
 
 	_, err = tx.Exec(`
 		INSERT INTO roles (name, description)
-		VALUES ('manager', 'Manager role with full access'),
-					 ('operator', 'operator role with limited access'),
-				   ('delivery', 'Dellivery agent'),
-					 ('customer', 'customer')
-		ON CONFLICT (name) DO NOTHING`)
+		VALUES ($1, 'Manager role with full access'),
+					 ($2, 'operator role with limited access'),
+				   ($3, 'Dellivery agent'),
+					 ($4, 'customer')
+		ON CONFLICT (name) DO NOTHING`,
+		constants.RoleManager,
+		constants.RoleOperator,
+		constants.RoleDelivery,
+		constants.RoleCustomer,
+	)
+
 	if err != nil {
 		return fmt.Errorf("failed to seed roles: %w", err)
 	}
 
 	roleIDs := make(map[string]uint64)
-	rows, err := tx.Query(`SELECT id, name FROM roles WHERE name IN ('manager', 'operator', 'delivery', 'customer')`)
+	rows, err := tx.Query(`SELECT id, name FROM roles WHERE name IN ($1, $2, $3, $4)`,
+		constants.RoleManager,
+		constants.RoleOperator,
+		constants.RoleDelivery,
+		constants.RoleCustomer,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve role IDs: %w", err)
 	}
@@ -62,6 +74,8 @@ func (s *PostgresStore) SeedDB() error {
 
 	// make the main manager
 	phoneNumber := os.Getenv("MAIN_MANAGER_PHONENUMBER")
+	managerName := os.Getenv("MAIN_MANAGER_NAME")
+
 	normalizedPhone, err := utils.ValidatePhoneNumber(phoneNumber)
 	if err != nil {
 		return fmt.Errorf("bad phone number, please check .env file")
@@ -70,10 +84,11 @@ func (s *PostgresStore) SeedDB() error {
 	lastInsertId := 0
 	insertErr := tx.QueryRow(
 		`	INSERT INTO USERS (name, phone_number, status, role_id, createdAt)
-			VALUES ('main manager', $1, $2, $3, $4) RETURNING id`,
+			VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+		managerName,
 		normalizedPhone,
-		"complete",
-		roleIDs["manager"],
+		constants.UserStatusComplete,
+		roleIDs[constants.RoleManager],
 		time.Now().UTC(),
 	).Scan(&lastInsertId)
 
@@ -83,13 +98,12 @@ func (s *PostgresStore) SeedDB() error {
 
 	// Define permissions and their role assignments
 	permissions := map[string][]string{
-		"manage_user":          {"manager"},
-		"manage_menu":          {"manager", "operator"},
-		"view orders":          {"manager", "operator"},
-		"manage_orders":        {"manager", "operator"},
-		"assign_orders":        {"manager", "operator"},
-		"mark_as_delivered":    {"delivery"},
-		"view_delivery_status": {"manager", "operator"},
+		constants.PermissionManageUser:      {constants.RoleManager},
+		constants.PermissionManageMenu:      {constants.RoleManager, constants.RoleOperator},
+		constants.PermissionViewOrder:       {constants.RoleManager, constants.RoleOperator},
+		constants.PermissionManagerOrder:    {constants.RoleManager, constants.RoleOperator},
+		constants.PermissionAssignOrder:     {constants.RoleManager, constants.RoleOperator},
+		constants.PermissionMarkAsDelivered: {constants.RoleDelivery},
 	}
 
 	// Insert permissions and assign them to roles

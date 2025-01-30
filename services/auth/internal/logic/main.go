@@ -10,6 +10,7 @@ import (
 	"github.com/thejixer/jixifood/services/auth/internal/redis"
 	"github.com/thejixer/jixifood/services/auth/internal/repository"
 	"github.com/thejixer/jixifood/services/auth/internal/utils"
+	"github.com/thejixer/jixifood/shared/constants"
 	apperrors "github.com/thejixer/jixifood/shared/errors"
 	"github.com/thejixer/jixifood/shared/models"
 	"google.golang.org/grpc/metadata"
@@ -134,9 +135,9 @@ func (l *AuthLogic) ConvertToPBUser(ctx context.Context, user *models.UserEntity
 
 	userStatus := func(status string) pb.UserStatus {
 		switch status {
-		case "complete":
+		case constants.UserStatusComplete:
 			return pb.UserStatus_complete
-		case "incomplete":
+		case constants.UserStatusIncomplete:
 			return pb.UserStatus_incomplete
 		default:
 			return pb.UserStatus_incomplete

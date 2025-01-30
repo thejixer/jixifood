@@ -5,12 +5,16 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/thejixer/jixifood/shared/constants"
 	apperrors "github.com/thejixer/jixifood/shared/errors"
 	"github.com/thejixer/jixifood/shared/models"
 )
 
 func (s *PostgresStore) CreateTypes() {
-	s.db.Query(`CREATE TYPE valid_user_status AS ENUM ('incomplete', 'complete');`)
+	s.db.Query(`CREATE TYPE valid_user_status AS ENUM ($1, $2);`,
+		constants.UserStatusIncomplete,
+		constants.UserStatusComplete,
+	)
 }
 
 func (s *PostgresStore) createAuthTables() error {
@@ -74,14 +78,14 @@ func (r *AuthRepo) CreateUser(ctx context.Context, phoneNumber string, roleID ui
 	NewUser := &models.UserEntity{
 		Name:        "",
 		PhoneNumber: phoneNumber,
-		Status:      "incomplete",
+		Status:      constants.UserStatusIncomplete,
 		RoleID:      roleID,
 		CreatedAt:   time.Now().UTC(),
 	}
 
 	// the roleId 0 is intended to be a customer
 	if NewUser.RoleID == 0 {
-		err := r.db.QueryRowContext(ctx, `SELECT id FROM ROLES WHERE NAME = 'customer'`).Scan(&NewUser.RoleID)
+		err := r.db.QueryRowContext(ctx, `SELECT id FROM ROLES WHERE NAME = $1`, constants.RoleCustomer).Scan(&NewUser.RoleID)
 		if err != nil {
 			return nil, err
 		}
