@@ -72,9 +72,9 @@ func (l *AuthLogic) GetUserByPhoneNumber(ctx context.Context, phoneNumber string
 	return user, nil
 }
 
-func (l *AuthLogic) CreateUser(ctx context.Context, phoneNumber string, roleID uint64) (*models.UserEntity, error) {
+func (l *AuthLogic) CreateUser(ctx context.Context, phoneNumber, name string, roleID uint64) (*models.UserEntity, error) {
 
-	user, err := l.dbStore.AuthRepo.CreateUser(ctx, phoneNumber, roleID)
+	user, err := l.dbStore.AuthRepo.CreateUser(ctx, phoneNumber, name, roleID)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (l *AuthLogic) GetRequester(ctx context.Context) (*models.UserEntity, error
 
 	user, err := l.dbStore.AuthRepo.GetUserByID(ctx, userId)
 	if err != nil {
-		return nil, apperrors.ErrInternal
+		return nil, apperrors.ErrUnauthorized
 	}
 
 	go l.RedisStore.CacheUser(user)

@@ -11,7 +11,9 @@ service AuthService {
   rpc VerifyOtp(VerifyOtpRequest) returns (Token);
   rpc Me(Empty) returns (User);
   rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+  rpc CreateUser(CreateUserRequest) returns (User);
 }
+
 // common
 message Empty {}
 
@@ -31,6 +33,12 @@ message VerifyOtpRequest {
 
 message CheckPermissionRequest {
   string persmissionName = 1;
+}
+
+message CreateUserRequest {
+  string phone_number = 1;
+  string name = 2;
+  uint64 role_id = 3;
 }
 
 // responses

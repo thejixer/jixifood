@@ -17,4 +17,7 @@ var (
 	PermissionManagerOrder    = "manage_order"
 	PermissionAssignOrder     = "assign_orders"
 	PermissionMarkAsDelivered = "mark_as_delivered"
+
+	PGForeignKeyViolationCode = "23503"
+	PGDuplicateKeyErrorCode   = "23505"
 )

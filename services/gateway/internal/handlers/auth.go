@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	authPB "github.com/thejixer/jixifood/generated/auth"
@@ -17,11 +18,11 @@ func (h *HandlerService) HandleRequestOTP(c echo.Context) error {
 	body := models.RequestOTPDto{}
 
 	if err := c.Bind(&body); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "bad input")
+		return echo.NewHTTPError(http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
 	}
 
 	if err := c.Validate(body); err != nil {
-		return WriteReponse(c, http.StatusBadRequest, "bad input")
+		return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
 	}
 
 	d := &authPB.RequestOtpRequest{
@@ -31,16 +32,16 @@ func (h *HandlerService) HandleRequestOTP(c echo.Context) error {
 	if err != nil {
 		st, ok := status.FromError(err)
 		if !ok {
-			return WriteReponse(c, http.StatusInternalServerError, "Internal server error")
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
 		}
 		switch st.Code() {
 		case codes.InvalidArgument:
 			return WriteReponse(c, http.StatusBadRequest, st.Message())
 		case codes.Internal:
-			return WriteReponse(c, http.StatusInternalServerError, "Internal server error")
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
 		default:
 			// Handle other error codes
-			return WriteReponse(c, http.StatusInternalServerError, "An unexpected error occurred")
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
 		}
 
 	}
@@ -52,11 +53,11 @@ func (h *HandlerService) HandleVerifyOTP(c echo.Context) error {
 	body := models.VerifyOTPDto{}
 
 	if err := c.Bind(&body); err != nil {
-		return WriteReponse(c, http.StatusBadRequest, "bad input")
+		return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
 	}
 
 	if err := c.Validate(body); err != nil {
-		return WriteReponse(c, http.StatusBadRequest, "bad input")
+		return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
 	}
 
 	d := &authPB.VerifyOtpRequest{
@@ -67,18 +68,18 @@ func (h *HandlerService) HandleVerifyOTP(c echo.Context) error {
 	if err != nil {
 		st, ok := status.FromError(err)
 		if !ok {
-			return WriteReponse(c, http.StatusInternalServerError, "Internal server error")
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
 		}
 		switch st.Code() {
 		case codes.InvalidArgument:
-			return WriteReponse(c, http.StatusBadRequest, "provided values did not meet the requirements")
+			return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
 		case codes.Internal:
-			return WriteReponse(c, http.StatusInternalServerError, "Internal server error")
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
 		case codes.Unauthenticated:
-			return WriteReponse(c, http.StatusUnauthorized, "code doesn't match")
+			return WriteReponse(c, http.StatusUnauthorized, apperrors.ErrCodeMismatch.Error())
 		default:
 			// Handle other error codes
-			return WriteReponse(c, http.StatusInternalServerError, "An unexpected error occurred")
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
 		}
 	}
 
@@ -97,16 +98,64 @@ func (h *HandlerService) HandleME(c echo.Context) error {
 	if err != nil {
 		st, ok := status.FromError(err)
 		if !ok {
-			return WriteReponse(c, http.StatusInternalServerError, "Internal server error")
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
 		}
 		switch st.Code() {
 		case codes.Unauthenticated:
 			return WriteReponse(c, http.StatusUnauthorized, apperrors.ErrUnauthorized.Error())
 		case codes.Internal:
-			return WriteReponse(c, http.StatusInternalServerError, "Internal server error")
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
 		default:
 			// Handle other error codes
-			return WriteReponse(c, http.StatusInternalServerError, "An unexpected error occurred")
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
+		}
+	}
+
+	return c.JSON(http.StatusOK, adapters.MapPBUserToUserDTO(resp))
+}
+
+func (h *HandlerService) HandleCreateUser(c echo.Context) error {
+	ctx, err := ContextWithCredentials(c)
+	if err != nil {
+		return WriteReponse(c, http.StatusUnauthorized, apperrors.ErrUnauthorized.Error())
+	}
+
+	body := models.CreateUserDto{}
+
+	if err := c.Bind(&body); err != nil {
+		return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
+	}
+
+	if err := c.Validate(body); err != nil {
+		return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
+	}
+
+	d := &authPB.CreateUserRequest{
+		PhoneNumber: body.PhoneNumber,
+		Name:        body.Name,
+		RoleId:      body.RoleID,
+	}
+	resp, err := h.gc.AuthClient.CreateUser(ctx, d)
+	if err != nil {
+		st, ok := status.FromError(err)
+		if !ok {
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
+		}
+		switch st.Code() {
+		case codes.InvalidArgument:
+			if strings.Contains(err.Error(), apperrors.ErrDuplicatePhone.Error()) {
+				return WriteReponse(c, http.StatusBadRequest, apperrors.ErrDuplicatePhone.Error())
+			}
+			return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
+		case codes.Unauthenticated:
+			return WriteReponse(c, http.StatusUnauthorized, apperrors.ErrUnauthorized.Error())
+		case codes.Internal:
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
+		case codes.PermissionDenied:
+			return WriteReponse(c, http.StatusForbidden, apperrors.ErrForbidden.Error())
+		default:
+			// Handle other error codes
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
 		}
 	}
 

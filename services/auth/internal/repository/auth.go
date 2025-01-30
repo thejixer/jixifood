@@ -3,18 +3,23 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/thejixer/jixifood/shared/constants"
 	apperrors "github.com/thejixer/jixifood/shared/errors"
 	"github.com/thejixer/jixifood/shared/models"
 )
 
 func (s *PostgresStore) CreateTypes() {
-	s.db.Query(`CREATE TYPE valid_user_status AS ENUM ($1, $2);`,
+	query := fmt.Sprintf(`CREATE TYPE valid_user_status AS ENUM ('%s', '%s');`,
 		constants.UserStatusIncomplete,
 		constants.UserStatusComplete,
 	)
+
+	s.db.Query(query)
+
 }
 
 func (s *PostgresStore) createAuthTables() error {
@@ -52,7 +57,8 @@ func (s *PostgresStore) createAuthTables() error {
 			name VARCHAR(100),
 			phone_number VARCHAR(20) UNIQUE,
 			status valid_user_status,
-			role_id int,
+			role_id INT NOT NULL,
+			FOREIGN KEY (role_id) REFERENCES roles(id),
 			createdAt TIMESTAMPTZ
 		);
 
@@ -73,14 +79,20 @@ func NewAuthRepo(db *sql.DB) *AuthRepo {
 	}
 }
 
-func (r *AuthRepo) CreateUser(ctx context.Context, phoneNumber string, roleID uint64) (*models.UserEntity, error) {
+func (r *AuthRepo) CreateUser(ctx context.Context, phoneNumber, name string, roleID uint64) (*models.UserEntity, error) {
 
 	NewUser := &models.UserEntity{
-		Name:        "",
+		Name:        name,
 		PhoneNumber: phoneNumber,
-		Status:      constants.UserStatusIncomplete,
-		RoleID:      roleID,
-		CreatedAt:   time.Now().UTC(),
+		Status: func(name string) string {
+			if name == "" {
+				return constants.UserStatusIncomplete
+			} else {
+				return constants.UserStatusComplete
+			}
+		}(name),
+		RoleID:    roleID,
+		CreatedAt: time.Now().UTC(),
 	}
 
 	// the roleId 0 is intended to be a customer
@@ -108,6 +120,18 @@ func (r *AuthRepo) CreateUser(ctx context.Context, phoneNumber string, roleID ui
 	).Scan(&lastInsertId)
 
 	if insertErr != nil {
+
+		pqErr, ok := insertErr.(*pq.Error)
+		if !ok {
+			return nil, fmt.Errorf("error in authRepo.createUser%w: %v", apperrors.ErrInternal, insertErr)
+		}
+		switch fmt.Sprintf("%v", pqErr.Code) {
+		case constants.PGDuplicateKeyErrorCode:
+			return nil, fmt.Errorf("error in authRepo.createUser: %w: %v", apperrors.ErrDuplicatePhone, insertErr)
+		case constants.PGForeignKeyViolationCode:
+			return nil, fmt.Errorf("error in authRepo.createUser: bad roleID: %w: %v", apperrors.ErrInputRequirements, insertErr)
+		}
+
 		return nil, insertErr
 	}
 

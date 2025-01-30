@@ -6,7 +6,7 @@ import (
 )
 
 type AuthRepository interface {
-	CreateUser(ctx context.Context, phoneNumber string, roleId uint64) (*UserEntity, error)
+	CreateUser(ctx context.Context, phoneNumber, name string, roleId uint64) (*UserEntity, error)
 	GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*UserEntity, error)
 	GetUserByID(ctx context.Context, id uint64) (*UserEntity, error)
 	GetRoleByID(ctx context.Context, id uint64) (*Role, error)
@@ -54,4 +54,10 @@ type UserDto struct {
 	Status      string    `json:"status"`
 	Role        string    `json:"role"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+type CreateUserDto struct {
+	PhoneNumber string `json:"phone_number" validate:"required"`
+	Name        string `json:"name" validate:"required"`
+	RoleID      uint64 `json:"roleID" validate:"required"`
 }

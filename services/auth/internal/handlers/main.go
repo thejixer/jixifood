@@ -3,10 +3,12 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	pb "github.com/thejixer/jixifood/generated/auth"
 	"github.com/thejixer/jixifood/services/auth/internal/logic"
 	"github.com/thejixer/jixifood/services/auth/internal/utils"
+	"github.com/thejixer/jixifood/shared/constants"
 	apperrors "github.com/thejixer/jixifood/shared/errors"
 	"github.com/thejixer/jixifood/shared/models"
 	"google.golang.org/grpc/codes"
@@ -17,7 +19,7 @@ type AuthLogicInterface interface {
 	GenerateAndStoreOtp(phoneNumber string) (string, error)
 	VerifyOTP(phoneNumber, otp string) (bool, error)
 	GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.UserEntity, error)
-	CreateUser(ctx context.Context, phoneNumber string, roleID uint64) (*models.UserEntity, error)
+	CreateUser(ctx context.Context, phoneNumber, name string, roleID uint64) (*models.UserEntity, error)
 	GetRequester(ctx context.Context) (*models.UserEntity, error)
 	ConvertToPBUser(ctx context.Context, user *models.UserEntity) *pb.User
 	CheckPermission(ctx context.Context, roleID uint64, permissionName string) bool
@@ -91,7 +93,7 @@ func (s *AuthHandler) VerifyOtp(ctx context.Context, req *pb.VerifyOtpRequest) (
 	var userId uint64
 	if user == nil {
 		// sign up logic
-		user, err := s.AuthLogic.CreateUser(ctx, normalizedPhone, 0)
+		user, err := s.AuthLogic.CreateUser(ctx, normalizedPhone, "", 0)
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, "bad request : "+err.Error())
 		}
@@ -117,12 +119,7 @@ func (s *AuthHandler) Me(ctx context.Context, req *pb.Empty) (*pb.User, error) {
 	requester, err := s.AuthLogic.GetRequester(ctx)
 
 	if err != nil {
-		if errors.Is(err, apperrors.ErrMissingMetaData) ||
-			errors.Is(err, apperrors.ErrMissingToken) ||
-			errors.Is(err, apperrors.ErrUnauthorized) {
-			return nil, status.Error(codes.Unauthenticated, apperrors.ErrUnauthorized.Error())
-		}
-		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+		return nil, HandleGetRequesterError(err)
 	}
 
 	user := s.AuthLogic.ConvertToPBUser(ctx, requester)
@@ -138,12 +135,7 @@ func (s *AuthHandler) CheckPermission(ctx context.Context, req *pb.CheckPermissi
 	requester, err := s.AuthLogic.GetRequester(ctx)
 
 	if err != nil {
-		if errors.Is(err, apperrors.ErrMissingMetaData) ||
-			errors.Is(err, apperrors.ErrMissingToken) ||
-			errors.Is(err, apperrors.ErrUnauthorized) {
-			return nil, status.Error(codes.Unauthenticated, apperrors.ErrUnauthorized.Error())
-		}
-		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+		return nil, HandleGetRequesterError(err)
 	}
 
 	ok := s.AuthLogic.CheckPermission(ctx, requester.RoleID, req.PersmissionName)
@@ -160,4 +152,48 @@ func (s *AuthHandler) CheckPermission(ctx context.Context, req *pb.CheckPermissi
 		HasPermission: true,
 		Requester:     user,
 	}, nil
+}
+
+func (s *AuthHandler) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.User, error) {
+
+	if req.RoleId == 0 || req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "bad request : "+apperrors.ErrInputRequirements.Error())
+	}
+	normalizedPhone, err := utils.ValidatePhoneNumber(req.PhoneNumber)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "bad request : "+err.Error())
+	}
+
+	requester, err := s.AuthLogic.GetRequester(ctx)
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, HandleGetRequesterError(err)
+	}
+
+	ok := s.AuthLogic.CheckPermission(ctx, requester.RoleID, constants.PermissionManageUser)
+	if !ok {
+		return nil, status.Error(codes.PermissionDenied, apperrors.ErrForbidden.Error())
+	}
+
+	resp, err := s.AuthLogic.CreateUser(ctx, normalizedPhone, req.Name, req.RoleId)
+	if err != nil {
+
+		if errors.Is(err, apperrors.ErrDuplicatePhone) {
+			return nil, status.Error(codes.InvalidArgument, apperrors.ErrDuplicatePhone.Error())
+		}
+
+		if errors.Is(err, apperrors.ErrInputRequirements) {
+			return nil, status.Error(codes.InvalidArgument, apperrors.ErrInputRequirements.Error())
+		}
+
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+	}
+	user := s.AuthLogic.ConvertToPBUser(ctx, resp)
+
+	if user == nil {
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+	}
+
+	return user, nil
 }
