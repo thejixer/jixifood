@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	pb "github.com/thejixer/jixifood/generated/auth"
 	"github.com/thejixer/jixifood/services/auth/internal/logic"
@@ -23,6 +22,7 @@ type AuthLogicInterface interface {
 	GetRequester(ctx context.Context) (*models.UserEntity, error)
 	ConvertToPBUser(ctx context.Context, user *models.UserEntity) *pb.User
 	CheckPermission(ctx context.Context, roleID uint64, permissionName string) bool
+	ChangeUserRole(ctx context.Context, userID, roleID uint64) (*models.UserEntity, error)
 }
 
 type AuthHandler struct {
@@ -167,7 +167,6 @@ func (s *AuthHandler) CreateUser(ctx context.Context, req *pb.CreateUserRequest)
 	requester, err := s.AuthLogic.GetRequester(ctx)
 
 	if err != nil {
-		fmt.Println(err)
 		return nil, HandleGetRequesterError(err)
 	}
 
@@ -195,5 +194,37 @@ func (s *AuthHandler) CreateUser(ctx context.Context, req *pb.CreateUserRequest)
 		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
 	}
 
+	return user, nil
+}
+
+func (s *AuthHandler) ChangeUserRole(ctx context.Context, req *pb.ChangeUserRoleRequest) (*pb.User, error) {
+
+	if req.UserId == 0 || req.RoleId == 0 {
+		return nil, status.Error(codes.InvalidArgument, "bad request : "+apperrors.ErrInputRequirements.Error())
+	}
+
+	requester, err := s.AuthLogic.GetRequester(ctx)
+
+	if err != nil {
+		return nil, HandleGetRequesterError(err)
+	}
+
+	ok := s.AuthLogic.CheckPermission(ctx, requester.RoleID, constants.PermissionManageUser)
+	if !ok {
+		return nil, status.Error(codes.PermissionDenied, apperrors.ErrForbidden.Error())
+	}
+
+	resp, err := s.AuthLogic.ChangeUserRole(ctx, req.UserId, req.RoleId)
+	if err != nil {
+		if errors.Is(err, apperrors.ErrInputRequirements) || errors.Is(err, apperrors.ErrNotFound) {
+			return nil, status.Error(codes.InvalidArgument, "bad request : "+apperrors.ErrInputRequirements.Error())
+		}
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+
+	}
+	user := s.AuthLogic.ConvertToPBUser(ctx, resp)
+	if user == nil {
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+	}
 	return user, nil
 }

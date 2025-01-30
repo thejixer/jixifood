@@ -203,6 +203,33 @@ func (r *AuthRepo) CheckPermission(ctx context.Context, roleID uint64, permissio
 	return exists, nil
 }
 
+func (r *AuthRepo) ChangeUserRole(ctx context.Context, userID, roleID uint64) (*models.UserEntity, error) {
+	query := `
+		UPDATE users
+		SET role_id = $1
+		WHERE id = $2
+		RETURNING *;
+	`
+	rows, err := r.db.QueryContext(ctx, query, roleID, userID)
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			switch pqErr.Code {
+			case constants.PGForeignKeyViolationCode:
+				return nil, fmt.Errorf("error in authRepo.changeUserRole: bad roleID: %w: %v", apperrors.ErrInputRequirements, err)
+			}
+
+		}
+		return nil, fmt.Errorf("error in authRepo.changeUserRole: %w", err)
+
+	}
+	for rows.Next() {
+		return ScanIntoUserEntity(rows)
+	}
+	return nil, apperrors.ErrNotFound
+
+}
+
 func ScanIntoUserEntity(rows *sql.Rows) (*models.UserEntity, error) {
 	u := new(models.UserEntity)
 	if err := rows.Scan(

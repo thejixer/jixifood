@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/golang-jwt/jwt"
@@ -162,4 +163,15 @@ func (l *AuthLogic) CheckPermission(ctx context.Context, roleID uint64, permissi
 	}
 
 	return true
+}
+
+func (l *AuthLogic) ChangeUserRole(ctx context.Context, userID, roleID uint64) (*models.UserEntity, error) {
+
+	user, err := l.dbStore.AuthRepo.ChangeUserRole(ctx, userID, roleID)
+	if err != nil {
+		return nil, fmt.Errorf("error in authLogic.changeUserRole: %w", err)
+
+	}
+
+	return user, nil
 }

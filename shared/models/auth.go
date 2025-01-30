@@ -11,6 +11,7 @@ type AuthRepository interface {
 	GetUserByID(ctx context.Context, id uint64) (*UserEntity, error)
 	GetRoleByID(ctx context.Context, id uint64) (*Role, error)
 	CheckPermission(ctx context.Context, roleID uint64, permissionName string) (bool, error)
+	ChangeUserRole(ctx context.Context, userID, roleID uint64) (*UserEntity, error)
 }
 
 type UserEntity struct {
@@ -60,4 +61,9 @@ type CreateUserDto struct {
 	PhoneNumber string `json:"phone_number" validate:"required"`
 	Name        string `json:"name" validate:"required"`
 	RoleID      uint64 `json:"roleID" validate:"required"`
+}
+
+type ChangeUserRoleDto struct {
+	UserID uint64 `json:"userID" validate:"required"`
+	RoleID uint64 `json:"roleID" validate:"required"`
 }

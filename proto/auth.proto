@@ -12,6 +12,7 @@ service AuthService {
   rpc Me(Empty) returns (User);
   rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
   rpc CreateUser(CreateUserRequest) returns (User);
+  rpc ChangeUserRole(ChangeUserRoleRequest) returns (User);
 }
 
 // common
@@ -39,6 +40,11 @@ message CreateUserRequest {
   string phone_number = 1;
   string name = 2;
   uint64 role_id = 3;
+}
+
+message ChangeUserRoleRequest {
+  uint64 user_id = 1;
+  uint64 role_id = 2;
 }
 
 // responses

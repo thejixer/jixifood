@@ -161,3 +161,48 @@ func (h *HandlerService) HandleCreateUser(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, adapters.MapPBUserToUserDTO(resp))
 }
+
+func (h *HandlerService) HandleChangeUserRole(c echo.Context) error {
+	ctx, err := ContextWithCredentials(c)
+	if err != nil {
+		return WriteReponse(c, http.StatusUnauthorized, apperrors.ErrUnauthorized.Error())
+	}
+
+	body := models.ChangeUserRoleDto{}
+
+	if err := c.Bind(&body); err != nil {
+		return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
+	}
+
+	if err := c.Validate(body); err != nil {
+		return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
+	}
+
+	d := &authPB.ChangeUserRoleRequest{
+		UserId: body.UserID,
+		RoleId: body.RoleID,
+	}
+	resp, err := h.gc.AuthClient.ChangeUserRole(ctx, d)
+	if err != nil {
+		st, ok := status.FromError(err)
+		if !ok {
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
+		}
+		switch st.Code() {
+		case codes.InvalidArgument:
+			return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
+		case codes.Unauthenticated:
+			return WriteReponse(c, http.StatusUnauthorized, apperrors.ErrUnauthorized.Error())
+		case codes.Internal:
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
+		case codes.PermissionDenied:
+			return WriteReponse(c, http.StatusForbidden, apperrors.ErrForbidden.Error())
+		default:
+			// Handle other error codes
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
+		}
+	}
+
+	return c.JSON(http.StatusOK, adapters.MapPBUserToUserDTO(resp))
+
+}
