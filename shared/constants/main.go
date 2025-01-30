@@ -1,5 +1,7 @@
 package constants
 
+import "github.com/lib/pq"
+
 var (
 	Bearer = "ut"
 
@@ -18,6 +20,6 @@ var (
 	PermissionAssignOrder     = "assign_orders"
 	PermissionMarkAsDelivered = "mark_as_delivered"
 
-	PGForeignKeyViolationCode = "23503"
-	PGDuplicateKeyErrorCode   = "23505"
+	PGForeignKeyViolationCode = pq.ErrorCode("23503")
+	PGDuplicateKeyErrorCode   = pq.ErrorCode("23505")
 )

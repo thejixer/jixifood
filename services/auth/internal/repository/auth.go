@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -120,19 +121,19 @@ func (r *AuthRepo) CreateUser(ctx context.Context, phoneNumber, name string, rol
 	).Scan(&lastInsertId)
 
 	if insertErr != nil {
+		var pqErr *pq.Error
+		if errors.As(insertErr, &pqErr) {
+			switch pqErr.Code {
+			case constants.PGDuplicateKeyErrorCode:
+				return nil, fmt.Errorf("error in authRepo.createUser: %w: %v", apperrors.ErrDuplicatePhone, insertErr)
+			case constants.PGForeignKeyViolationCode:
+				return nil, fmt.Errorf("error in authRepo.createUser: bad roleID: %w: %v", apperrors.ErrInputRequirements, insertErr)
+			}
 
-		pqErr, ok := insertErr.(*pq.Error)
-		if !ok {
-			return nil, fmt.Errorf("error in authRepo.createUser%w: %v", apperrors.ErrInternal, insertErr)
-		}
-		switch fmt.Sprintf("%v", pqErr.Code) {
-		case constants.PGDuplicateKeyErrorCode:
-			return nil, fmt.Errorf("error in authRepo.createUser: %w: %v", apperrors.ErrDuplicatePhone, insertErr)
-		case constants.PGForeignKeyViolationCode:
-			return nil, fmt.Errorf("error in authRepo.createUser: bad roleID: %w: %v", apperrors.ErrInputRequirements, insertErr)
 		}
 
-		return nil, insertErr
+		return nil, fmt.Errorf("error in authRepo.createUser: %w", insertErr)
+
 	}
 
 	NewUser.ID = uint64(lastInsertId)
