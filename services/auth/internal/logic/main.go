@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/golang-jwt/jwt"
 	pb "github.com/thejixer/jixifood/generated/auth"
 	"github.com/thejixer/jixifood/services/auth/internal/redis"
 	"github.com/thejixer/jixifood/services/auth/internal/repository"
 	"github.com/thejixer/jixifood/services/auth/internal/utils"
-	"github.com/thejixer/jixifood/shared/constants"
 	apperrors "github.com/thejixer/jixifood/shared/errors"
 	"github.com/thejixer/jixifood/shared/models"
 	"google.golang.org/grpc/metadata"
@@ -134,22 +134,11 @@ func (l *AuthLogic) ConvertToPBUser(ctx context.Context, user *models.UserEntity
 		return nil
 	}
 
-	userStatus := func(status string) pb.UserStatus {
-		switch status {
-		case constants.UserStatusComplete:
-			return pb.UserStatus_complete
-		case constants.UserStatusIncomplete:
-			return pb.UserStatus_incomplete
-		default:
-			return pb.UserStatus_incomplete
-		}
-	}(user.Status)
-
 	return &pb.User{
 		Id:          user.ID,
 		Name:        user.Name,
 		PhoneNumber: user.PhoneNumber,
-		Status:      userStatus,
+		Status:      GetUserStatus(user.Status),
 		Role:        role.Name,
 		CreatedAt:   timestamppb.New(user.CreatedAt),
 	}
@@ -185,4 +174,63 @@ func (l *AuthLogic) EditProfile(ctx context.Context, userID uint64, name string)
 	}
 
 	return user, nil
+}
+
+func (l *AuthLogic) QueryUsers(ctx context.Context, text string, page, limit uint64) ([]*pb.User, uint64, bool, error) {
+	var (
+		userEntities []*models.UserEntity
+		count        uint64
+		hasNextPage  bool
+		roles        []*models.Role
+		err1, err2   error
+		wg           sync.WaitGroup
+	)
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		userEntities, count, hasNextPage, err1 = l.dbStore.AuthRepo.QueryUsers(ctx, text, page, limit)
+	}()
+
+	go func() {
+		defer wg.Done()
+		roles, err2 = l.dbStore.AuthRepo.GetRoles(ctx)
+	}()
+
+	wg.Wait()
+
+	if err1 != nil {
+		return nil, 0, false, fmt.Errorf("error in authLogic.queryUsers: %w", err1)
+	}
+	if err2 != nil {
+		return nil, 0, false, fmt.Errorf("error in authLogic.getRoles: %w", err2)
+	}
+
+	// userEntities, count, hasNextPage, err := l.dbStore.AuthRepo.QueryUsers(ctx, text, page, limit)
+	// if err != nil {
+	// 	return nil, 0, false, fmt.Errorf("error in authLogic.queryUsers: %w", err)
+	// }
+	// roles, err := l.dbStore.AuthRepo.GetRoles(ctx)
+	// if err != nil {
+	// 	return nil, 0, false, fmt.Errorf("error in authLogic.queryUsers: %w", err)
+	// }
+
+	roleCache := make(map[uint64]string)
+	for _, role := range roles {
+		roleCache[role.ID] = role.Name
+	}
+	var users []*pb.User
+	for _, u := range userEntities {
+		user := &pb.User{
+			Id:          u.ID,
+			Name:        u.Name,
+			PhoneNumber: u.PhoneNumber,
+			Status:      GetUserStatus(u.Status),
+			Role:        roleCache[u.RoleID],
+			CreatedAt:   timestamppb.New(u.CreatedAt),
+		}
+		users = append(users, user)
+	}
+
+	return users, count, hasNextPage, nil
 }

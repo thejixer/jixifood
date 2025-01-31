@@ -14,6 +14,7 @@ var (
 	RoleCustomer = "customer"
 
 	PermissionManageUser      = "manage_user"
+	PermissionViewUser        = "view_user"
 	PermissionManageMenu      = "manage_menu"
 	PermissionViewOrder       = "view_order"
 	PermissionManagerOrder    = "manage_order"

@@ -148,7 +148,7 @@ func (r *AuthRepo) GetUserByPhoneNumber(ctx context.Context, phoneNumber string)
 	if err != nil {
 		return nil, err
 	}
-
+	defer rows.Close()
 	for rows.Next() {
 		return ScanIntoUserEntity(rows)
 	}
@@ -164,6 +164,7 @@ func (r *AuthRepo) GetUserByID(ctx context.Context, id uint64) (*models.UserEnti
 		return nil, err
 	}
 
+	defer rows.Close()
 	for rows.Next() {
 		return ScanIntoUserEntity(rows)
 	}
@@ -177,6 +178,7 @@ func (r *AuthRepo) GetRoleByID(ctx context.Context, id uint64) (*models.Role, er
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		return ScanIntoRole(rows)
@@ -211,6 +213,7 @@ func (r *AuthRepo) ChangeUserRole(ctx context.Context, userID, roleID uint64) (*
 		RETURNING *;
 	`
 	rows, err := r.db.QueryContext(ctx, query, roleID, userID)
+
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
@@ -223,6 +226,7 @@ func (r *AuthRepo) ChangeUserRole(ctx context.Context, userID, roleID uint64) (*
 		return nil, fmt.Errorf("error in authRepo.changeUserRole: %w", err)
 
 	}
+	defer rows.Close()
 	for rows.Next() {
 		return ScanIntoUserEntity(rows)
 	}
@@ -238,14 +242,82 @@ func (r *AuthRepo) EditProfile(ctx context.Context, userID uint64, name string) 
 		RETURNING *;
 	`
 	rows, err := r.db.QueryContext(ctx, query, userID, name, constants.UserStatusComplete)
+
 	if err != nil {
 		return nil, fmt.Errorf("error in authRepo.changeUserRole: %w", err)
 	}
+	defer rows.Close()
 	for rows.Next() {
 		return ScanIntoUserEntity(rows)
 	}
 	return nil, fmt.Errorf("error in authRepo.editProfile: %w: %v", apperrors.ErrNotFound, err)
 
+}
+
+func (r *AuthRepo) QueryUsers(ctx context.Context, text string, page, limit uint64) ([]*models.UserEntity, uint64, bool, error) {
+
+	if limit == 0 || limit > 100 {
+		limit = 10
+	}
+	offset := page * limit
+
+	query := `
+		SELECT * FROM USERS
+		WHERE name ILIKE '%' || $1 || '%'
+		LIMIT $2 OFFSET $3;
+	`
+	rows, err := r.db.QueryContext(ctx, query, text, limit, offset)
+	if err != nil {
+		return nil, 0, false, fmt.Errorf("error in authRepo.queryUsers: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*models.UserEntity
+	for rows.Next() {
+		u := new(models.UserEntity)
+		if err := rows.Scan(
+			&u.ID,
+			&u.Name,
+			&u.PhoneNumber,
+			&u.Status,
+			&u.RoleID,
+			&u.CreatedAt,
+		); err != nil {
+			return nil, 0, false, err
+		}
+		users = append(users, u)
+	}
+	var count uint64
+	r.db.QueryRowContext(ctx, `
+		SELECT count(id) FROM USERS
+		WHERE name ILIKE '%' || $1 || '%'
+	`, text).Scan(&count)
+
+	hasNextPage := offset+limit < count
+	return users, count, hasNextPage, nil
+}
+func (r *AuthRepo) GetRoles(ctx context.Context) ([]*models.Role, error) {
+	query := `SELECT * FROM roles`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var roles []*models.Role
+	for rows.Next() {
+		u := new(models.Role)
+		if err := rows.Scan(
+			&u.ID,
+			&u.Name,
+			&u.Description,
+		); err != nil {
+			return nil, err
+		}
+		roles = append(roles, u)
+	}
+
+	return roles, nil
 }
 
 func ScanIntoUserEntity(rows *sql.Rows) (*models.UserEntity, error) {

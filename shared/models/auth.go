@@ -13,6 +13,8 @@ type AuthRepository interface {
 	CheckPermission(ctx context.Context, roleID uint64, permissionName string) (bool, error)
 	ChangeUserRole(ctx context.Context, userID, roleID uint64) (*UserEntity, error)
 	EditProfile(ctx context.Context, userID uint64, name string) (*UserEntity, error)
+	QueryUsers(ctx context.Context, text string, page, limit uint64) ([]*UserEntity, uint64, bool, error)
+	GetRoles(ctx context.Context) ([]*Role, error)
 }
 
 type UserEntity struct {
@@ -70,4 +72,10 @@ type ChangeUserRoleDto struct {
 
 type EditProfileDto struct {
 	Name string `json:"name" validate:"required"`
+}
+
+type QueryUsersDto struct {
+	Data        []*UserDto `json:"data"`
+	HasNextPage bool       `json:"hasNextPage"`
+	Total       uint64     `json:"total"`
 }

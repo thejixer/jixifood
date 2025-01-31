@@ -14,6 +14,7 @@ service AuthService {
   rpc CreateUser(CreateUserRequest) returns (User);
   rpc ChangeUserRole(ChangeUserRoleRequest) returns (User);
   rpc EditProfile(EditProfileRequest) returns (User);
+  rpc QueryUsers(QueryUsersRequest) returns (QueryUsersResponse);
 }
 
 // common
@@ -52,6 +53,12 @@ message EditProfileRequest {
   string name = 1;
 }
 
+message QueryUsersRequest {
+  string text = 1;
+  uint64 page = 2;
+  uint64 limit = 3;
+}
+
 // responses
 
 message Token {
@@ -74,4 +81,10 @@ message MessageResponse {
 message CheckPermissionResponse {
   bool hasPermission = 1;
   User requester = 2;
+}
+
+message QueryUsersResponse {
+  repeated User data = 1;
+  uint64 total = 2;
+  bool hasNextPage = 3;
 }

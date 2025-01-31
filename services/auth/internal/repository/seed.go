@@ -99,6 +99,7 @@ func (s *PostgresStore) SeedDB() error {
 	// Define permissions and their role assignments
 	permissions := map[string][]string{
 		constants.PermissionManageUser:      {constants.RoleManager},
+		constants.PermissionViewUser:        {constants.RoleManager, constants.RoleOperator},
 		constants.PermissionManageMenu:      {constants.RoleManager, constants.RoleOperator},
 		constants.PermissionViewOrder:       {constants.RoleManager, constants.RoleOperator},
 		constants.PermissionManagerOrder:    {constants.RoleManager, constants.RoleOperator},

@@ -24,6 +24,7 @@ type AuthLogicInterface interface {
 	CheckPermission(ctx context.Context, roleID uint64, permissionName string) bool
 	ChangeUserRole(ctx context.Context, userID, roleID uint64) (*models.UserEntity, error)
 	EditProfile(ctx context.Context, userID uint64, name string) (*models.UserEntity, error)
+	QueryUsers(ctx context.Context, text string, page, limit uint64) ([]*pb.User, uint64, bool, error)
 }
 
 type AuthHandler struct {
@@ -250,4 +251,29 @@ func (s *AuthHandler) EditProfile(ctx context.Context, req *pb.EditProfileReques
 	}
 
 	return user, nil
+}
+
+func (s *AuthHandler) QueryUsers(ctx context.Context, req *pb.QueryUsersRequest) (*pb.QueryUsersResponse, error) {
+	requester, err := s.AuthLogic.GetRequester(ctx)
+
+	if err != nil {
+		return nil, HandleGetRequesterError(err)
+	}
+
+	ok := s.AuthLogic.CheckPermission(ctx, requester.RoleID, constants.PermissionViewUser)
+	if !ok {
+		return nil, status.Error(codes.PermissionDenied, apperrors.ErrForbidden.Error())
+	}
+
+	users, total, hasNextPage, err := s.AuthLogic.QueryUsers(ctx, req.Text, req.Page, req.Limit)
+	if err != nil {
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+	}
+
+	return &pb.QueryUsersResponse{
+		Data:        users,
+		Total:       total,
+		HasNextPage: hasNextPage,
+	}, nil
+
 }
