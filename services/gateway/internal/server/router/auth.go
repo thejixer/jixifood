@@ -11,4 +11,5 @@ func (r *Router) ApplyAuthRoutes(e *echo.Echo) {
 	auth.POST("/me", r.h.HandleME)
 	auth.POST("/create-user", r.h.HandleCreateUser)
 	auth.POST("/change-userrole", r.h.HandleChangeUserRole)
+	auth.POST("/edit-profile", r.h.HandleEditProfile)
 }

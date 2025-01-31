@@ -13,6 +13,7 @@ service AuthService {
   rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
   rpc CreateUser(CreateUserRequest) returns (User);
   rpc ChangeUserRole(ChangeUserRoleRequest) returns (User);
+  rpc EditProfile(EditProfileRequest) returns (User);
 }
 
 // common
@@ -45,6 +46,10 @@ message CreateUserRequest {
 message ChangeUserRoleRequest {
   uint64 user_id = 1;
   uint64 role_id = 2;
+}
+
+message EditProfileRequest {
+  string name = 1;
 }
 
 // responses

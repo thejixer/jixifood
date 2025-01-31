@@ -230,6 +230,24 @@ func (r *AuthRepo) ChangeUserRole(ctx context.Context, userID, roleID uint64) (*
 
 }
 
+func (r *AuthRepo) EditProfile(ctx context.Context, userID uint64, name string) (*models.UserEntity, error) {
+	query := `
+		UPDATE users
+		SET name = $2, status = $3
+		WHERE id = $1
+		RETURNING *;
+	`
+	rows, err := r.db.QueryContext(ctx, query, userID, name, constants.UserStatusComplete)
+	if err != nil {
+		return nil, fmt.Errorf("error in authRepo.changeUserRole: %w", err)
+	}
+	for rows.Next() {
+		return ScanIntoUserEntity(rows)
+	}
+	return nil, fmt.Errorf("error in authRepo.editProfile: %w: %v", apperrors.ErrNotFound, err)
+
+}
+
 func ScanIntoUserEntity(rows *sql.Rows) (*models.UserEntity, error) {
 	u := new(models.UserEntity)
 	if err := rows.Scan(

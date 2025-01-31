@@ -23,6 +23,7 @@ type AuthLogicInterface interface {
 	ConvertToPBUser(ctx context.Context, user *models.UserEntity) *pb.User
 	CheckPermission(ctx context.Context, roleID uint64, permissionName string) bool
 	ChangeUserRole(ctx context.Context, userID, roleID uint64) (*models.UserEntity, error)
+	EditProfile(ctx context.Context, userID uint64, name string) (*models.UserEntity, error)
 }
 
 type AuthHandler struct {
@@ -226,5 +227,27 @@ func (s *AuthHandler) ChangeUserRole(ctx context.Context, req *pb.ChangeUserRole
 	if user == nil {
 		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
 	}
+	return user, nil
+}
+
+func (s *AuthHandler) EditProfile(ctx context.Context, req *pb.EditProfileRequest) (*pb.User, error) {
+	if req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "bad request : "+apperrors.ErrInputRequirements.Error())
+	}
+	requester, err := s.AuthLogic.GetRequester(ctx)
+
+	if err != nil {
+		return nil, HandleGetRequesterError(err)
+	}
+
+	resp, err := s.AuthLogic.EditProfile(ctx, requester.ID, req.Name)
+	if err != nil {
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+	}
+	user := s.AuthLogic.ConvertToPBUser(ctx, resp)
+	if user == nil {
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+	}
+
 	return user, nil
 }

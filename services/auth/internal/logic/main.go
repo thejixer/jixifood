@@ -175,3 +175,14 @@ func (l *AuthLogic) ChangeUserRole(ctx context.Context, userID, roleID uint64) (
 
 	return user, nil
 }
+
+func (l *AuthLogic) EditProfile(ctx context.Context, userID uint64, name string) (*models.UserEntity, error) {
+
+	user, err := l.dbStore.AuthRepo.EditProfile(ctx, userID, name)
+
+	if err != nil {
+		return nil, fmt.Errorf("error in authLogic.editProfile: %w", err)
+	}
+
+	return user, nil
+}
