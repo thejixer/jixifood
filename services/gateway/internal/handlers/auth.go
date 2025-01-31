@@ -259,10 +259,6 @@ func (h *HandlerService) HandleQueryUsers(c echo.Context) error {
 	p := c.QueryParam("page")
 	l := c.QueryParam("limit")
 
-	// var page uint64
-	// var limit uint64
-	// var text string
-
 	page, err := strconv.Atoi(p)
 	if err != nil {
 		page = 0
@@ -308,4 +304,42 @@ func (h *HandlerService) HandleQueryUsers(c echo.Context) error {
 		Total:       resp.Total,
 	}
 	return c.JSON(http.StatusOK, result)
+}
+
+func (h *HandlerService) HandleGetSingleUser(c echo.Context) error {
+	ctx, err := ContextWithCredentials(c)
+	if err != nil {
+		return WriteReponse(c, http.StatusUnauthorized, apperrors.ErrUnauthorized.Error())
+	}
+	i := c.Param("id")
+	intuserID, err := strconv.Atoi(i)
+	if err != nil {
+		return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
+	}
+	userID := uint64(intuserID)
+	d := &authPB.GetUserByIDRequest{
+		Id: userID,
+	}
+	resp, err := h.gc.AuthClient.GetUserByID(ctx, d)
+	if err != nil {
+		st, ok := status.FromError(err)
+		if !ok {
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
+		}
+		switch st.Code() {
+		case codes.NotFound:
+			return WriteReponse(c, http.StatusBadRequest, apperrors.ErrNotFound.Error())
+		case codes.Unauthenticated:
+			return WriteReponse(c, http.StatusUnauthorized, apperrors.ErrUnauthorized.Error())
+		case codes.Internal:
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
+		case codes.PermissionDenied:
+			return WriteReponse(c, http.StatusForbidden, apperrors.ErrForbidden.Error())
+		default:
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
+		}
+	}
+
+	return c.JSON(http.StatusOK, adapters.MapPBUserToUserDTO(resp))
+
 }

@@ -206,15 +206,6 @@ func (l *AuthLogic) QueryUsers(ctx context.Context, text string, page, limit uin
 		return nil, 0, false, fmt.Errorf("error in authLogic.getRoles: %w", err2)
 	}
 
-	// userEntities, count, hasNextPage, err := l.dbStore.AuthRepo.QueryUsers(ctx, text, page, limit)
-	// if err != nil {
-	// 	return nil, 0, false, fmt.Errorf("error in authLogic.queryUsers: %w", err)
-	// }
-	// roles, err := l.dbStore.AuthRepo.GetRoles(ctx)
-	// if err != nil {
-	// 	return nil, 0, false, fmt.Errorf("error in authLogic.queryUsers: %w", err)
-	// }
-
 	roleCache := make(map[uint64]string)
 	for _, role := range roles {
 		roleCache[role.ID] = role.Name
@@ -233,4 +224,22 @@ func (l *AuthLogic) QueryUsers(ctx context.Context, text string, page, limit uin
 	}
 
 	return users, count, hasNextPage, nil
+}
+
+func (l *AuthLogic) GetUserByID(ctx context.Context, id uint64) (*models.UserEntity, error) {
+
+	userFromCache := l.RedisStore.GetUser(id)
+	if userFromCache != nil {
+		return userFromCache, nil
+	}
+
+	fmt.Println("reading user from database since cache failed")
+	user, err := l.dbStore.AuthRepo.GetUserByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("error in authLogic.getUserByID: %w", err)
+	}
+
+	go l.RedisStore.CacheUser(user)
+
+	return user, nil
 }

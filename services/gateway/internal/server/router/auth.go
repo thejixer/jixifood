@@ -11,6 +11,7 @@ func (r *Router) ApplyAuthRoutes(e *echo.Echo) {
 	auth.GET("/me", r.h.HandleME)
 	auth.GET("/users", r.h.HandleQueryUsers)
 	auth.POST("/users", r.h.HandleCreateUser)
+	auth.GET("/users/:id", r.h.HandleGetSingleUser)
 	auth.PATCH("/users/:id/role", r.h.HandleChangeUserRole)
 	auth.PATCH("/users/profile", r.h.HandleEditProfile)
 }

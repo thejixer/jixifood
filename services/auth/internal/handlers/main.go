@@ -25,6 +25,7 @@ type AuthLogicInterface interface {
 	ChangeUserRole(ctx context.Context, userID, roleID uint64) (*models.UserEntity, error)
 	EditProfile(ctx context.Context, userID uint64, name string) (*models.UserEntity, error)
 	QueryUsers(ctx context.Context, text string, page, limit uint64) ([]*pb.User, uint64, bool, error)
+	GetUserByID(ctx context.Context, id uint64) (*models.UserEntity, error)
 }
 
 type AuthHandler struct {
@@ -275,5 +276,29 @@ func (s *AuthHandler) QueryUsers(ctx context.Context, req *pb.QueryUsersRequest)
 		Total:       total,
 		HasNextPage: hasNextPage,
 	}, nil
+
+}
+
+func (s *AuthHandler) GetUserByID(ctx context.Context, req *pb.GetUserByIDRequest) (*pb.User, error) {
+	requester, err := s.AuthLogic.GetRequester(ctx)
+
+	if err != nil {
+		return nil, HandleGetRequesterError(err)
+	}
+
+	ok := s.AuthLogic.CheckPermission(ctx, requester.RoleID, constants.PermissionViewUser)
+	if !ok {
+		return nil, status.Error(codes.PermissionDenied, apperrors.ErrForbidden.Error())
+	}
+
+	resp, err := s.AuthLogic.GetUserByID(ctx, req.Id)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, apperrors.ErrNotFound.Error())
+	}
+	user := s.AuthLogic.ConvertToPBUser(ctx, resp)
+	if user == nil {
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+	}
+	return user, nil
 
 }

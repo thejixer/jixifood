@@ -15,6 +15,7 @@ service AuthService {
   rpc ChangeUserRole(ChangeUserRoleRequest) returns (User);
   rpc EditProfile(EditProfileRequest) returns (User);
   rpc QueryUsers(QueryUsersRequest) returns (QueryUsersResponse);
+  rpc GetUserByID(GetUserByIDRequest) returns (User);
 }
 
 // common
@@ -57,6 +58,10 @@ message QueryUsersRequest {
   string text = 1;
   uint64 page = 2;
   uint64 limit = 3;
+}
+
+message GetUserByIDRequest {
+  uint64 id = 1;
 }
 
 // responses
