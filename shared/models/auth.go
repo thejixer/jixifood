@@ -65,7 +65,6 @@ type CreateUserDto struct {
 }
 
 type ChangeUserRoleDto struct {
-	UserID uint64 `json:"userID" validate:"required"`
 	RoleID uint64 `json:"roleID" validate:"required"`
 }
 

@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -40,7 +41,6 @@ func (h *HandlerService) HandleRequestOTP(c echo.Context) error {
 		case codes.Internal:
 			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
 		default:
-			// Handle other error codes
 			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
 		}
 
@@ -78,7 +78,6 @@ func (h *HandlerService) HandleVerifyOTP(c echo.Context) error {
 		case codes.Unauthenticated:
 			return WriteReponse(c, http.StatusUnauthorized, apperrors.ErrCodeMismatch.Error())
 		default:
-			// Handle other error codes
 			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
 		}
 	}
@@ -106,7 +105,6 @@ func (h *HandlerService) HandleME(c echo.Context) error {
 		case codes.Internal:
 			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
 		default:
-			// Handle other error codes
 			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
 		}
 	}
@@ -154,7 +152,6 @@ func (h *HandlerService) HandleCreateUser(c echo.Context) error {
 		case codes.PermissionDenied:
 			return WriteReponse(c, http.StatusForbidden, apperrors.ErrForbidden.Error())
 		default:
-			// Handle other error codes
 			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
 		}
 	}
@@ -178,8 +175,14 @@ func (h *HandlerService) HandleChangeUserRole(c echo.Context) error {
 		return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
 	}
 
+	i := c.Param("id")
+	intuserID, err := strconv.Atoi(i)
+	if err != nil {
+		return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
+	}
+	userID := uint64(intuserID)
 	d := &authPB.ChangeUserRoleRequest{
-		UserId: body.UserID,
+		UserId: userID,
 		RoleId: body.RoleID,
 	}
 	resp, err := h.gc.AuthClient.ChangeUserRole(ctx, d)
@@ -198,7 +201,6 @@ func (h *HandlerService) HandleChangeUserRole(c echo.Context) error {
 		case codes.PermissionDenied:
 			return WriteReponse(c, http.StatusForbidden, apperrors.ErrForbidden.Error())
 		default:
-			// Handle other error codes
 			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
 		}
 	}
@@ -222,6 +224,7 @@ func (h *HandlerService) HandleEditProfile(c echo.Context) error {
 	if err := c.Validate(body); err != nil {
 		return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
 	}
+
 	d := &authPB.EditProfileRequest{
 		Name: body.Name,
 	}
