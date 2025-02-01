@@ -25,7 +25,7 @@ WORKDIR /jixifood
 # Copy the binary from the builder stage
 COPY --from=builder /jixifood/auth_service .
 
-COPY ../../../.env ./
+COPY ../../../k8s.env ./.env
 RUN ls -al /jixifood/.env
 
 # Command to run the microservice

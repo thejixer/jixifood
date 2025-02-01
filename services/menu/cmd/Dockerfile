@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the microservice binary
-RUN go build -o gateway_service ./services/gateway/cmd
+RUN go build -o menu_service ./services/menu/cmd
 
 # Stage 2: Run
 FROM alpine:3.20.1
@@ -23,10 +23,10 @@ FROM alpine:3.20.1
 WORKDIR /jixifood
 
 # Copy the binary from the builder stage
-COPY --from=builder /jixifood/gateway_service .
+COPY --from=builder /jixifood/menu_service .
 
 COPY ../../../k8s.env ./.env
 RUN ls -al /jixifood/.env
 
 # Command to run the microservice
-CMD ["./gateway_service"]
+CMD ["./menu_service"]

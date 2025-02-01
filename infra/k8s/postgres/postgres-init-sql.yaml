@@ -6,3 +6,4 @@ metadata:
 data:
   init.sql: |
     CREATE DATABASE jixifood_auth;
+    CREATE DATABASE jixifood_menu;

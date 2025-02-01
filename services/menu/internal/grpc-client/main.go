@@ -4,7 +4,7 @@ import (
 	"log"
 
 	authPB "github.com/thejixer/jixifood/generated/auth"
-	"github.com/thejixer/jixifood/services/gateway/internal/config"
+	"github.com/thejixer/jixifood/services/menu/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -14,7 +14,7 @@ type GrpcClient struct {
 	authConn   *grpc.ClientConn
 }
 
-func NewGRPCClient(cfg *config.GatewayConfig) *GrpcClient {
+func NewGRPCClient(cfg *config.MenuServiceConfig) *GrpcClient {
 	authConn, err := grpc.NewClient(cfg.AuthServiceURI, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal("can not initiate the grpc client")
