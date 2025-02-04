@@ -64,3 +64,14 @@ func (s *MenuHandler) EditCategory(ctx context.Context, req *pb.EditCategoryRequ
 	category := s.MenuLogic.MapCategoryEntityToPBCategory(c)
 	return category, nil
 }
+
+func (s *MenuHandler) GetCategories(ctx context.Context, req *pb.Empty) (*pb.GetCategoriesResponse, error) {
+	resp, err := s.MenuLogic.GetCategories(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+	}
+	categories := s.MenuLogic.MapCategoriesToPB(resp)
+	return &pb.GetCategoriesResponse{
+		Categories: categories,
+	}, nil
+}

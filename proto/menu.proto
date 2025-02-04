@@ -9,10 +9,12 @@ import "google/protobuf/timestamp.proto";
 service MenuService {
   rpc CreateCategory(CreateCategoryRequest) returns (Category);
   rpc EditCategory(EditCategoryRequest) returns (Category);
+  rpc GetCategories(Empty) returns (GetCategoriesResponse);
 }
 
 
 // requests
+message Empty {}
 
 message CreateCategoryRequest {
   string Name = 1;
@@ -35,4 +37,8 @@ message Category {
   string Description = 3;
   bool IsQuantifiable = 4;
   google.protobuf.Timestamp created_at = 5;
+}
+
+message GetCategoriesResponse {
+  repeated Category categories = 1;
 }

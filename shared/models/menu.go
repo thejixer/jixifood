@@ -8,6 +8,7 @@ import (
 type MenuRepository interface {
 	CreateCategory(ctx context.Context, category *CategoryEntity) (*CategoryEntity, error)
 	EditCategory(ctx context.Context, category *CategoryEntity) (*CategoryEntity, error)
+	GetCategories(ctx context.Context) ([]*CategoryEntity, error)
 }
 
 type CategoryEntity struct {

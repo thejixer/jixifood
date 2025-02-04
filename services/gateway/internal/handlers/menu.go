@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -106,4 +107,24 @@ func (h *HandlerService) HandleEditCategory(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, adapters.MapPBCategoryToCategoryDTO(resp))
 
+}
+
+func (h *HandlerService) HandleGetCategories(c echo.Context) error {
+	d := &menuPB.Empty{}
+	resp, err := h.gc.MenuClient.GetCategories(context.Background(), d)
+	if err != nil {
+		st, ok := status.FromError(err)
+		if !ok {
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
+		}
+		switch st.Code() {
+		case codes.Internal:
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
+		default:
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
+		}
+	}
+
+	categories := adapters.MapPBtoCategoriesDto(resp.Categories)
+	return c.JSON(http.StatusOK, categories)
 }

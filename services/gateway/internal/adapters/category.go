@@ -15,3 +15,12 @@ func MapPBCategoryToCategoryDTO(c *menuPB.Category) *models.CategoryDto {
 		CreatedAt:      c.CreatedAt.AsTime(),
 	}
 }
+
+func MapPBtoCategoriesDto(categories []*menuPB.Category) []*models.CategoryDto {
+	var result []*models.CategoryDto
+	for _, item := range categories {
+		c := MapPBCategoryToCategoryDTO(item)
+		result = append(result, c)
+	}
+	return result
+}

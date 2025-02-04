@@ -36,6 +36,15 @@ func (l *MenuLogic) MapCategoryEntityToPBCategory(c *models.CategoryEntity) *pb.
 	}
 }
 
+func (l *MenuLogic) MapCategoriesToPB(categories []*models.CategoryEntity) []*pb.Category {
+	var result []*pb.Category
+	for _, item := range categories {
+		c := l.MapCategoryEntityToPBCategory(item)
+		result = append(result, c)
+	}
+	return result
+}
+
 func (l *MenuLogic) EditCategory(ctx context.Context, category *models.CategoryEntity) (*models.CategoryEntity, error) {
 
 	c, err := l.dbStore.MenuRepo.EditCategory(ctx, category)
@@ -44,4 +53,12 @@ func (l *MenuLogic) EditCategory(ctx context.Context, category *models.CategoryE
 	}
 
 	return c, nil
+}
+
+func (l *MenuLogic) GetCategories(ctx context.Context) ([]*models.CategoryEntity, error) {
+	categories, err := l.dbStore.MenuRepo.GetCategories(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error in MenuLogic.GetCategories: %w", err)
+	}
+	return categories, nil
 }

@@ -87,6 +87,25 @@ func (r *MenuRepo) EditCategory(ctx context.Context, category *models.CategoryEn
 	return nil, fmt.Errorf("error in menuRepo.EditCategory: %w: %v", apperrors.ErrNotFound, err)
 }
 
+func (r *MenuRepo) GetCategories(ctx context.Context) ([]*models.CategoryEntity, error) {
+	query := `SELECT * FROM categories`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("error in menuRepo.GetCategories: %w", err)
+	}
+	defer rows.Close()
+	var categories []*models.CategoryEntity
+	for rows.Next() {
+		c, err := ScanIntoCategoryEntity(rows)
+		if err != nil {
+			return nil, fmt.Errorf("error in menuRepo.GetCategories: %w", err)
+		}
+		categories = append(categories, c)
+	}
+
+	return categories, nil
+
+}
 func ScanIntoCategoryEntity(rows *sql.Rows) (*models.CategoryEntity, error) {
 	c := new(models.CategoryEntity)
 	if err := rows.Scan(
