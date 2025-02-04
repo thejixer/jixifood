@@ -106,6 +106,20 @@ func (r *MenuRepo) GetCategories(ctx context.Context) ([]*models.CategoryEntity,
 	return categories, nil
 
 }
+
+func (r *MenuRepo) GetCategory(ctx context.Context, id uint64) (*models.CategoryEntity, error) {
+	query := `SELECT * FROM categories WHERE ID = $1`
+	rows, err := r.db.QueryContext(ctx, query, id)
+
+	if err != nil {
+		return nil, fmt.Errorf("error in menuRepo.GetCategory: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		return ScanIntoCategoryEntity(rows)
+	}
+	return nil, fmt.Errorf("error in menuRepo.GetCategory: %w: %v", apperrors.ErrNotFound, err)
+}
 func ScanIntoCategoryEntity(rows *sql.Rows) (*models.CategoryEntity, error) {
 	c := new(models.CategoryEntity)
 	if err := rows.Scan(

@@ -17,6 +17,7 @@ type MenuLogicInterface interface {
 	WrapContextAroundNewContext(ctx context.Context) (context.Context, error)
 	EditCategory(ctx context.Context, category *models.CategoryEntity) (*models.CategoryEntity, error)
 	GetCategories(ctx context.Context) ([]*models.CategoryEntity, error)
+	GetCategory(ctx context.Context, id uint64) (*models.CategoryEntity, error)
 }
 
 type MenuHandler struct {

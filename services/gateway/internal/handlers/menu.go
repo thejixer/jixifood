@@ -128,3 +128,31 @@ func (h *HandlerService) HandleGetCategories(c echo.Context) error {
 	categories := adapters.MapPBtoCategoriesDto(resp.Categories)
 	return c.JSON(http.StatusOK, categories)
 }
+func (h *HandlerService) HandleGetCategory(c echo.Context) error {
+	i := c.Param("id")
+	intCategoryID, err := strconv.Atoi(i)
+	if err != nil {
+		return WriteReponse(c, http.StatusBadRequest, apperrors.ErrInputRequirements.Error())
+	}
+	categoryID := uint64(intCategoryID)
+	d := &menuPB.GetCategoryRequest{
+		Id: categoryID,
+	}
+	resp, err := h.gc.MenuClient.GetCategory(context.Background(), d)
+	if err != nil {
+		st, ok := status.FromError(err)
+		if !ok {
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
+		}
+		switch st.Code() {
+		case codes.NotFound:
+			return WriteReponse(c, http.StatusBadRequest, apperrors.ErrNotFound.Error())
+		case codes.Internal:
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrInternal.Error())
+		default:
+			return WriteReponse(c, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
+		}
+	}
+	return c.JSON(http.StatusOK, adapters.MapPBCategoryToCategoryDTO(resp))
+
+}

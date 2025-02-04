@@ -10,6 +10,7 @@ service MenuService {
   rpc CreateCategory(CreateCategoryRequest) returns (Category);
   rpc EditCategory(EditCategoryRequest) returns (Category);
   rpc GetCategories(Empty) returns (GetCategoriesResponse);
+  rpc GetCategory(GetCategoryRequest) returns (Category);
 }
 
 
@@ -27,6 +28,10 @@ message EditCategoryRequest {
   string Name = 2;
   string Description = 3;
   bool IsQuantifiable = 4;
+}
+
+message GetCategoryRequest {
+  uint64 id = 1;
 }
 
 // responses

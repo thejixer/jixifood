@@ -75,3 +75,12 @@ func (s *MenuHandler) GetCategories(ctx context.Context, req *pb.Empty) (*pb.Get
 		Categories: categories,
 	}, nil
 }
+
+func (s *MenuHandler) GetCategory(ctx context.Context, req *pb.GetCategoryRequest) (*pb.Category, error) {
+	c, err := s.MenuLogic.GetCategory(ctx, req.Id)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, apperrors.ErrNotFound.Error())
+	}
+	category := s.MenuLogic.MapCategoryEntityToPBCategory(c)
+	return category, nil
+}

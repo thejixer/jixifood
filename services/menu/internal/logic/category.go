@@ -62,3 +62,11 @@ func (l *MenuLogic) GetCategories(ctx context.Context) ([]*models.CategoryEntity
 	}
 	return categories, nil
 }
+
+func (l *MenuLogic) GetCategory(ctx context.Context, id uint64) (*models.CategoryEntity, error) {
+	c, err := l.dbStore.MenuRepo.GetCategory(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("error in menuLogic.GetCategory: %w", err)
+	}
+	return c, nil
+}

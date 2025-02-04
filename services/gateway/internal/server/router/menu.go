@@ -7,4 +7,5 @@ func (r *Router) ApplyMenuRoutes(e *echo.Echo) {
 	menu.POST("/category", r.h.HandleCreateCategory)
 	menu.PATCH("/category/:id", r.h.HandleEditCategory)
 	menu.GET("/category", r.h.HandleGetCategories)
+	menu.GET("/category/:id", r.h.HandleGetCategory)
 }
