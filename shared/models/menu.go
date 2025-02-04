@@ -7,6 +7,7 @@ import (
 
 type MenuRepository interface {
 	CreateCategory(ctx context.Context, category *CategoryEntity) (*CategoryEntity, error)
+	EditCategory(ctx context.Context, category *CategoryEntity) (*CategoryEntity, error)
 }
 
 type CategoryEntity struct {
@@ -20,6 +21,12 @@ type CategoryEntity struct {
 // ######### DTOS #########
 
 type CreateCategoryDto struct {
+	Name           string `json:"name" validate:"required"`
+	Description    string `json:"description" validate:"required"`
+	IsQuantifiable bool   `json:"is_quantifiable" validate:"omitempty"`
+}
+
+type EditCategoryDto struct {
 	Name           string `json:"name" validate:"required"`
 	Description    string `json:"description" validate:"required"`
 	IsQuantifiable bool   `json:"is_quantifiable" validate:"omitempty"`

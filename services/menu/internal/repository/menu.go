@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	apperrors "github.com/thejixer/jixifood/shared/errors"
 	"github.com/thejixer/jixifood/shared/models"
 )
 
@@ -65,4 +66,37 @@ func (r *MenuRepo) CreateCategory(ctx context.Context, category *models.Category
 	NewCategory.ID = uint64(lastInsertId)
 	return NewCategory, nil
 
+}
+
+func (r *MenuRepo) EditCategory(ctx context.Context, category *models.CategoryEntity) (*models.CategoryEntity, error) {
+	query := `
+		UPDATE categories
+		SET name = $2, description = $3, is_quantifiable = $4
+		WHERE id = $1
+		RETURNING *;
+	`
+	rows, err := r.db.QueryContext(ctx, query, category.ID, category.Name, category.Description, category.IsQuantifiable)
+
+	if err != nil {
+		return nil, fmt.Errorf("error in menuRepo.EditCategory: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		return ScanIntoCategoryEntity(rows)
+	}
+	return nil, fmt.Errorf("error in menuRepo.EditCategory: %w: %v", apperrors.ErrNotFound, err)
+}
+
+func ScanIntoCategoryEntity(rows *sql.Rows) (*models.CategoryEntity, error) {
+	c := new(models.CategoryEntity)
+	if err := rows.Scan(
+		&c.ID,
+		&c.Name,
+		&c.Description,
+		&c.IsQuantifiable,
+		&c.CreatedAt,
+	); err != nil {
+		return nil, err
+	}
+	return c, nil
 }

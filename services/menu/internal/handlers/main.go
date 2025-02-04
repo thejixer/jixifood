@@ -14,6 +14,7 @@ type MenuLogicInterface interface {
 	CreateCategory(ctx context.Context, name, description string, isQuantifiable bool) (*models.CategoryEntity, error)
 	MapCategoryEntityToPBCategory(*models.CategoryEntity) *pb.Category
 	WrapContextAroundNewContext(ctx context.Context) (context.Context, error)
+	EditCategory(ctx context.Context, category *models.CategoryEntity) (*models.CategoryEntity, error)
 }
 
 type MenuHandler struct {

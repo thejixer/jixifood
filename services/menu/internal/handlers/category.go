@@ -6,6 +6,7 @@ import (
 	pb "github.com/thejixer/jixifood/generated/menu"
 	"github.com/thejixer/jixifood/shared/constants"
 	apperrors "github.com/thejixer/jixifood/shared/errors"
+	"github.com/thejixer/jixifood/shared/models"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -34,4 +35,32 @@ func (s *MenuHandler) CreateCategory(ctx context.Context, req *pb.CreateCategory
 	category := s.MenuLogic.MapCategoryEntityToPBCategory(c)
 	return category, nil
 
+}
+
+func (s *MenuHandler) EditCategory(ctx context.Context, req *pb.EditCategoryRequest) (*pb.Category, error) {
+	if req.Name == "" || req.Description == "" {
+		return nil, status.Error(codes.InvalidArgument, "bad request : "+apperrors.ErrInputRequirements.Error())
+	}
+
+	NewCtx, err := s.MenuLogic.WrapContextAroundNewContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, apperrors.ErrUnauthorized.Error())
+	}
+	resp, err := s.MenuLogic.CheckPermission(NewCtx, constants.PermissionManageMenu)
+	if err != nil || !resp.HasPermission {
+		return nil, status.Error(codes.PermissionDenied, apperrors.ErrForbidden.Error())
+	}
+
+	d := &models.CategoryEntity{
+		ID:             req.Id,
+		Name:           req.Name,
+		Description:    req.Description,
+		IsQuantifiable: req.IsQuantifiable,
+	}
+	c, err := s.MenuLogic.EditCategory(NewCtx, d)
+	if err != nil {
+		return nil, status.Error(codes.Internal, apperrors.ErrUnexpected.Error())
+	}
+	category := s.MenuLogic.MapCategoryEntityToPBCategory(c)
+	return category, nil
 }

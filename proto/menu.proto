@@ -8,6 +8,7 @@ import "google/protobuf/timestamp.proto";
 
 service MenuService {
   rpc CreateCategory(CreateCategoryRequest) returns (Category);
+  rpc EditCategory(EditCategoryRequest) returns (Category);
 }
 
 
@@ -17,6 +18,13 @@ message CreateCategoryRequest {
   string Name = 1;
   string Description = 2;
   bool IsQuantifiable = 3;
+}
+
+message EditCategoryRequest {
+  uint64 id = 1;
+  string Name = 2;
+  string Description = 3;
+  bool IsQuantifiable = 4;
 }
 
 // responses
