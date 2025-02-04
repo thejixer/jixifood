@@ -1,11 +1,20 @@
 package handlers
 
 import (
+	"context"
+
+	authPB "github.com/thejixer/jixifood/generated/auth"
 	pb "github.com/thejixer/jixifood/generated/menu"
 	"github.com/thejixer/jixifood/services/menu/internal/logic"
+	"github.com/thejixer/jixifood/shared/models"
 )
 
-type MenuLogicInterface interface{}
+type MenuLogicInterface interface {
+	CheckPermission(ctx context.Context, permissionName string) (*authPB.CheckPermissionResponse, error)
+	CreateCategory(ctx context.Context, name, description string, isQuantifiable bool) (*models.CategoryEntity, error)
+	MapCategoryEntityToPBCategory(*models.CategoryEntity) *pb.Category
+	WrapContextAroundNewContext(ctx context.Context) (context.Context, error)
+}
 
 type MenuHandler struct {
 	pb.UnimplementedMenuServiceServer

@@ -4,4 +4,27 @@ option go_package = "generated/menu";
 
 package menu;
 
-service MenuService {}
+import "google/protobuf/timestamp.proto";
+
+service MenuService {
+  rpc CreateCategory(CreateCategoryRequest) returns (Category);
+}
+
+
+// requests
+
+message CreateCategoryRequest {
+  string Name = 1;
+  string Description = 2;
+  bool IsQuantifiable = 3;
+}
+
+// responses
+
+message Category {
+  uint64 id = 1;
+  string Name = 2;
+  string Description = 3;
+  bool IsQuantifiable = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
